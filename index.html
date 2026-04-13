@@ -1530,10 +1530,10 @@ function showPreviewModal(a, brand) {
 
   const plan = document.getElementById('outputPlan');
   plan.innerHTML = `
-    <div class="plan-item"><div class="plan-icon">🖼️</div><div><div class="plan-text">9 Foto Utama</div><div class="plan-sub">via MaiaRouter Image</div></div></div>
-    <div class="plan-item"><div class="plan-icon">🎨</div><div><div class="plan-text">${varianCount} Foto Varian</div><div class="plan-sub">via MaiaRouter Image</div></div></div>
-    <div class="plan-item"><div class="plan-icon">📝</div><div><div class="plan-text">SEO Lengkap</div><div class="plan-sub">Judul + deskripsi + keyword</div></div></div>
-    <div class="plan-item"><div class="plan-icon">🏷️</div><div><div class="plan-text">Brand: ${brand?.name}</div><div class="plan-sub">Kesan ${brand?.kesan}</div></div></div>
+    <div class="plan-item"><div class="plan-icon">👁️</div><div><div class="plan-text">Claude Vision</div><div class="plan-sub">Baca & ekstrak produk lo</div></div></div>
+    <div class="plan-item"><div class="plan-icon">✨</div><div><div class="plan-text">4 Foto Premium</div><div class="plan-sub">GPT Image 1 + referensi foto</div></div></div>
+    <div class="plan-item"><div class="plan-icon">🎨</div><div><div class="plan-text">5 Foto Utama</div><div class="plan-sub">Gemini Imagen 3</div></div></div>
+    <div class="plan-item"><div class="plan-icon">🌸</div><div><div class="plan-text">${varianCount} Foto Varian</div><div class="plan-sub">Nano Banana 2</div></div></div>
   `;
 
   const rp = a.estimasi_rp || (varianCount * 3200 + 500);
@@ -1547,25 +1547,34 @@ function showPreviewModal(a, brand) {
 async function doGenerate() {
   closeModal('previewModal');
 
-  const nama = document.getElementById('namaProduk').value;
+  const nama  = document.getElementById('namaProduk').value;
   const posisi = document.getElementById('posisiPasang').value;
-  const desc = document.getElementById('deskripsiTambahan').value;
+  const desc  = document.getElementById('deskripsiTambahan').value;
   const brand = settings.brands.find(b => b.id === selectedBrand);
   const base64Images = await Promise.all(uploadedFiles.map(toBase64));
 
   document.getElementById('resultArea').style.display = 'block';
-  document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // Setup placeholder grid
+  document.getElementById('resultArea').scrollIntoView({ behavior:'smooth', block:'start' });
   setupResultPlaceholders();
 
-  // ── STEP 1: Generate SEO ──
-  updateLoading('MEMBUAT SEO', 'AI menulis judul + deskripsi + keyword...', 1);
-  showLoading('MEMBUAT SEO', 'AI menulis konten marketplace...', 1);
+  // ── PHASE 1: Claude Vision baca produk ──
+  showLoading('FASE 1 — CLAUDE VISION', 'Membaca foto produk lo...', 0);
+  let productDesc = '';
+  try {
+    productDesc = await extractProductDescription(nama, posisi, desc, brand, base64Images);
+    console.log('[ProductDesc]', productDesc);
+    setStep(0, 'done');
+  } catch(e) {
+    console.error('Vision error:', e);
+    productDesc = `${nama}, dashboard car accessory, ${desc||''}`;
+    setStep(0, 'done');
+  }
 
+  // ── PHASE 2: SEO via Gemini Flash ──
+  updateLoading('FASE 2 — SEO', 'Gemini Flash menulis konten marketplace...', 1);
   let seoData = null;
   try {
-    seoData = await generateSEO(nama, posisi, desc, brand, base64Images);
+    seoData = await generateSEO(nama, posisi, desc, brand, base64Images, productDesc);
     renderSEO(seoData);
     setStep(1, 'done');
   } catch(e) {
@@ -1573,34 +1582,36 @@ async function doGenerate() {
     setStep(1, 'done');
   }
 
-  // ── STEP 2: Generate 9 Main Photos ──
-  updateLoading('GENERATE FOTO UTAMA', 'AI membuat 9 foto listing...', 2);
+  // ── PHASE 3: 4 Foto Premium via GPT Image 1 (dengan referensi foto) ──
+  updateLoading('FASE 3 — GPT IMAGE 1', '4 foto premium dengan referensi produk lo...', 2);
   try {
-    if (settings.keys.maia) {
-      await generateMainPhotos(nama, posisi, desc, brand, base64Images);
-    } else {
-      renderPlaceholderPhotos('main', 9, '(MaiaRouter API key belum diset)');
-    }
+    await generateGPTPhotos(nama, posisi, brand, productDesc, base64Images);
     setStep(2, 'done');
   } catch(e) {
-    console.error('Main photos error:', e);
-    renderPlaceholderPhotos('main', 9, 'Error: ' + e.message);
+    console.error('GPT photos error:', e);
+    for(let i=0;i<4;i++) updateResultPhotoError('main', i, GPT_SLOTS[i]?.label||`Foto ${i+1}`, e.message);
     setStep(2, 'done');
   }
 
-  // ── STEP 3: Generate Variant Photos ──
-  updateLoading('GENERATE FOTO VARIAN', 'AI membuat foto varian...', 3);
+  // ── PHASE 4: 5 Foto via Gemini Imagen 3 ──
+  updateLoading('FASE 4 — GEMINI IMAGEN 3', '5 foto utama dengan Imagen 3...', 3);
   try {
-    if (settings.keys.maia) {
-      await generateVariantPhotos(nama, posisi, desc, brand, base64Images);
-    } else {
-      renderPlaceholderPhotos('variant', varianCount, '(MaiaRouter API key belum diset)');
-    }
+    await generateImagenPhotos(nama, posisi, brand, productDesc);
     setStep(3, 'done');
+  } catch(e) {
+    console.error('Imagen photos error:', e);
+    for(let i=4;i<9;i++) updateResultPhotoError('main', i, IMAGEN_SLOTS[i-4]?.label||`Foto ${i+1}`, e.message);
+    setStep(3, 'done');
+  }
+
+  // ── PHASE 5: Foto Varian via Nano Banana 2 ──
+  updateLoading('FASE 5 — NANO BANANA 2', 'Foto varian dengan Nano Banana...', 4);
+  try {
+    await generateVariantPhotos(nama, posisi, brand, productDesc, base64Images);
     setStep(4, 'done');
   } catch(e) {
-    console.error('Variant photos error:', e);
-    renderPlaceholderPhotos('variant', varianCount, 'Error: ' + e.message);
+    console.error('Variant error:', e);
+    for(let i=0;i<varianCount;i++) updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
     setStep(4, 'done');
   }
 
@@ -1615,10 +1626,7 @@ async function doGenerate() {
 async function maiaFetch(endpoint, body) {
   const res = await fetch(`https://api.maiarouter.ai/v1${endpoint}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${settings.keys.maia}`
-    },
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.keys.maia}` },
     body: JSON.stringify(body)
   });
   const data = await res.json();
@@ -1627,6 +1635,134 @@ async function maiaFetch(endpoint, body) {
     throw new Error(`[${res.status}] ${msg}`);
   }
   return data;
+}
+
+// ── Ekstrak deskripsi visual produk via Claude Vision ──
+async function extractProductDescription(nama, posisi, desc, brand, imgs) {
+  const imageContents = imgs.slice(0,3).map((b64, i) => ({
+    type: 'image_url',
+    image_url: { url: `data:${uploadedFiles[i]?.type||'image/jpeg'};base64,${b64}` }
+  }));
+  const brandProfile = brand ? `Brand: ${brand.name}, gaya: ${(brand.gaya_foto||[]).join(', ')||'natural'}, mood: ${brand.mood_estetika||'premium'}` : '';
+  const d = await maiaFetch('/chat/completions', {
+    model: 'maia/gemini-2.5-flash',
+    max_tokens: 400,
+    messages: [{ role:'user', content: [
+      ...imageContents,
+      { type:'text', text:`Deskripsikan produk dalam foto ini dengan sangat detail dalam Bahasa Inggris untuk prompt image generation.
+Fokus pada: warna, bentuk, material, jumlah item, detail unik, karakter visual.
+Contoh output: "Set of 4 cute cartoon frog figurines in green resin, 2 large and 2 small sizes, placed on black diamond-pattern anti-slip mat, shiny finish, kawaii style"
+Tambahkan info: posisi pasang = ${posisi||'car dashboard'}, ${brandProfile}, ${desc||''}
+Balas HANYA deskripsi produk, tanpa teks lain.` }
+    ]}]
+  });
+  return d.choices[0].message.content.trim();
+}
+
+// ── GPT SLOTS (4 foto premium) ──
+const GPT_SLOTS = [
+  { label:'Hero Shot',         scene:`professional hero shot, placed on ${'{posisi}'}, studio lighting, 4K commercial photography` },
+  { label:'Lifestyle Interior',scene:`inside luxury car interior, natural bokeh background, warm lifestyle photography` },
+  { label:'Close-up Detail',   scene:`extreme macro close-up showing texture and craftsmanship, ultra sharp detail` },
+  { label:'Night Mood',        scene:`night car interior, warm glowing dashboard lights, cinematic dark mood` }
+];
+
+// ── IMAGEN SLOTS (5 foto) ──
+const IMAGEN_SLOTS = [
+  { label:'Full Set View',     scene:`flat lay top-down view, all pieces arranged, clean white background, e-commerce style` },
+  { label:'Wide Angle',        scene:`wide angle car interior, editorial automotive photography, bokeh trees outside` },
+  { label:'Infografis',        scene:`clean product infographic with dimension labels, minimal design, white background` },
+  { label:'Feature Highlight', scene:`marketing photo with feature callout overlays, modern graphic design` },
+  { label:'Social Proof',      scene:`e-commerce trust photo, bestseller badge, 5-star rating, clean layout` }
+];
+
+// ── Generate 4 foto via GPT Image 1 (dengan referensi foto) ──
+async function generateGPTPhotos(nama, posisi, brand, productDesc, imgs) {
+  const brandStyle = brand ? `${(brand.gaya_foto||[]).join(', ')||'natural'}, ${brand.mood_estetika||'premium'}` : 'natural, premium';
+
+  for (let i = 0; i < GPT_SLOTS.length; i++) {
+    const slot = GPT_SLOTS[i];
+    const scene = slot.scene.replace('{posisi}', posisi||'car dashboard');
+    const prompt = `${productDesc}. ${scene}. Brand style: ${brandStyle}. Photorealistic, commercial quality. Keep product appearance exactly as reference.`;
+
+    try {
+      // Gunakan /images/edits untuk kirim foto referensi ke GPT Image 1
+      const imgBlob = base64ToBlob(imgs[0], uploadedFiles[0]?.type||'image/png');
+      const form = new FormData();
+      form.append('model', 'gpt-image-1');
+      form.append('image[]', imgBlob, 'product.png');
+      form.append('prompt', prompt);
+      form.append('n', '1');
+      form.append('size', '1024x1024');
+
+      const res = await fetch('https://api.maiarouter.ai/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${settings.keys.maia}` },
+        body: form
+      });
+      const d = await res.json();
+      console.log(`[GPT ${i+1}]`, d);
+      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      if (url) updateResultPhoto('main', i, url, slot.label);
+      else {
+        // Fallback ke text-only jika edits gagal
+        const d2 = await maiaFetch('/images/generations', { model:'gpt-image-1', prompt, n:1, size:'1024x1024' });
+        const url2 = d2.data?.[0]?.url || (d2.data?.[0]?.b64_json ? `data:image/png;base64,${d2.data[0].b64_json}` : null);
+        url2 ? updateResultPhoto('main', i, url2, slot.label) : updateResultPhotoError('main', i, slot.label, d?.error?.message||'No image');
+      }
+    } catch(e) {
+      console.error(`[GPT ${i+1}]`, e);
+      updateResultPhotoError('main', i, slot.label, e.message);
+    }
+    document.getElementById('mainPhotoCount').textContent = `${i+1}/9`;
+  }
+}
+
+// ── Generate 5 foto via Gemini Imagen 3 ──
+async function generateImagenPhotos(nama, posisi, brand, productDesc) {
+  const brandStyle = brand ? `${(brand.gaya_foto||[]).join(', ')||'natural'}, ${brand.mood_estetika||'premium'}` : 'natural, premium';
+
+  for (let i = 0; i < IMAGEN_SLOTS.length; i++) {
+    const slot = IMAGEN_SLOTS[i];
+    const prompt = `${productDesc}. ${slot.scene}. Brand style: ${brandStyle}. Photorealistic commercial photography.`;
+    try {
+      const d = await maiaFetch('/images/generations', { model:'maia/imagen-3.0-generate-001', prompt, n:1, size:'1024x1024' });
+      console.log(`[Imagen ${i+1}]`, d);
+      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      url ? updateResultPhoto('main', i+4, url, slot.label) : updateResultPhotoError('main', i+4, slot.label, d?.error?.message||'No image');
+    } catch(e) {
+      console.error(`[Imagen ${i+1}]`, e);
+      updateResultPhotoError('main', i+4, slot.label, e.message);
+    }
+    document.getElementById('mainPhotoCount').textContent = `${i+5}/9`;
+  }
+}
+
+// ── Generate foto varian via Nano Banana 2 ──
+async function generateVariantPhotos(nama, posisi, brand, productDesc, imgs) {
+  const brandStyle = brand ? `${brand.mood_estetika||'natural'}, ${brand.kesan||'premium'}` : 'natural';
+  for (let i = 0; i < varianCount; i++) {
+    const variantDesc = imgs[i] ? `Variant ${i+1} of: ${productDesc}` : productDesc;
+    const prompt = `${variantDesc}. Installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, depth of field, photorealistic, commercial quality. Style: ${brandStyle}.`;
+    try {
+      const d = await maiaFetch('/images/generations', { model:'nano-banana-2', prompt, n:1, size:'1024x1024' });
+      console.log(`[NanoBanana ${i+1}]`, d);
+      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      url ? updateResultPhoto('variant', i, url, `Varian ${i+1}`) : updateResultPhotoError('variant', i, `Varian ${i+1}`, d?.error?.message||'No image');
+    } catch(e) {
+      console.error(`[NanoBanana ${i+1}]`, e);
+      updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
+    }
+    document.getElementById('variantPhotoCount').textContent = `${i+1}/${varianCount}`;
+  }
+}
+
+// ── Helper: base64 → Blob ──
+function base64ToBlob(base64, mime) {
+  const bytes = atob(base64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime||'image/png' });
 }
 
 async function testImageGen() {
@@ -1737,85 +1873,19 @@ Balas HANYA JSON:
   return JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
 }
 
-async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
-  const brandStyle = brand ? `${(brand.gaya_foto||[]).join(' ')} ${brand.mood_estetika||''} ${brand.catatan_ai||''}`.trim() : '';
-  const MAIN_SLOTS = [
-    { label:'Hero Shot',         prompt:`Professional product hero shot of ${nama}, placed at ${posisi||'car dashboard'}, ${brandStyle}, 4K ultra detailed, commercial photography, photorealistic` },
-    { label:'Lifestyle Interior',prompt:`Car interior lifestyle photo, ${nama} installed on dashboard, ${brand?.mood_estetika||'natural'} lighting, ${currentAnalysis?.karakter||'premium'} mood, photorealistic, bokeh` },
-    { label:'Close-up Detail',   prompt:`Extreme close-up macro shot of ${nama}, showing texture and craftsmanship detail, ultra sharp, ${brandStyle}, commercial product photography` },
-    { label:'Full Set View',     prompt:`Complete flat lay of ${nama}, all pieces arranged neatly top-down view, ${brand?.kesan||'clean'} color palette, e-commerce white background` },
-    { label:'Wide Angle',        prompt:`Wide interior shot, ${nama} installed in luxury car, bokeh background trees outside, ${brandStyle}, editorial automotive photography` },
-    { label:'Night Mood',        prompt:`Night ambiance car interior, ${nama} on dashboard, warm glowing dashboard lights, cinematic mood, ${brand?.mood_estetika||'premium'}, dark aesthetic` },
-    { label:'Infografis',        prompt:`Clean product infographic of ${nama}, dimension labels, minimal design, ${brand?.color||'blue'} accent color, white background, professional typography` },
-    { label:'Feature Highlight', prompt:`Marketing photo for ${nama} brand ${brand?.name||'Hosela'}, ${brandStyle}, feature callout overlay, modern graphic design style` },
-    { label:'Social Proof',      prompt:`E-commerce product photo for ${nama}, bestseller badge, 5-star rating graphic, clean modern layout, trust signals, brand ${brand?.name||'Hosela'}` }
-  ];
-
-  for (let i = 0; i < MAIN_SLOTS.length; i++) {
-    const slot = MAIN_SLOTS[i];
-    try {
-      const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.keys.maia}`
-        },
-        body: JSON.stringify({
-          model: settings.keys.modelImage || 'dall-e-3',
-          prompt: slot.prompt,
-          n: 1,
-          size: '1024x1024'
-        })
-      });
-      const d = await res.json();
-      console.log(`[Main ${i+1}] ${slot.label}:`, d);
-      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      if (url) {
-        updateResultPhoto('main', i, url, slot.label);
-      } else {
-        const errMsg = d?.error?.message || d?.message || JSON.stringify(d).slice(0,80);
-        updateResultPhotoError('main', i, slot.label, errMsg);
-      }
-    } catch(e) {
-      console.error(`[Main ${i+1}] Error:`, e);
-      updateResultPhotoError('main', i, slot.label, e.message);
-    }
-    document.getElementById('mainPhotoCount').textContent = `${i+1}/9`;
-  }
-}
-
-async function generateVariantPhotos(nama, posisi, desc, brand, imgs) {
-  for (let i = 0; i < varianCount; i++) {
-    try {
-      const prompt = `Realistic product photography: ${nama} variant ${i+1}, installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, subtle depth of field, photorealistic, commercial quality. ${desc||''} ${brand?.catatan_ai||''}`.trim();
-      const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.keys.maia}`
-        },
-        body: JSON.stringify({
-          model: settings.keys.modelImage || 'dall-e-3',
-          prompt,
-          n: 1,
-          size: '1024x1024'
-        })
-      });
-      const d = await res.json();
-      console.log(`[Varian ${i+1}]:`, d);
-      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      if (url) {
-        updateResultPhoto('variant', i, url, `Varian ${i+1}`);
-      } else {
-        const errMsg = d?.error?.message || d?.message || JSON.stringify(d).slice(0,80);
-        updateResultPhotoError('variant', i, `Varian ${i+1}`, errMsg);
-      }
-    } catch(e) {
-      console.error(`[Varian ${i+1}] Error:`, e);
-      updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
-    }
-    document.getElementById('variantPhotoCount').textContent = `${i+1}/${varianCount}`;
-  }
+async function generateSEO(nama, posisi, desc, brand, imgs, productDesc) {
+  const brandProfile = brand ? `Brand: ${brand.name}, gaya: ${(brand.gaya_foto||[]).join(', ')||'natural'}, target: ${brand.target_market||'umum'}, mood: ${brand.mood_estetika||'premium'}, instruksi: ${brand.catatan_ai||'-'}` : '';
+  const d = await maiaFetch('/chat/completions', {
+    model: 'maia/gemini-2.0-flash',
+    max_tokens: 1200,
+    messages: [{ role:'user', content:`Kamu adalah copywriter e-commerce Indonesia ahli SEO Shopee & TikTok Shop.
+${brandProfile}
+Deskripsi visual produk: ${productDesc||nama}
+Posisi: ${posisi||'dashboard mobil'}, Catatan: ${desc||'-'}, Varian: ${varianCount} pilihan
+Balas HANYA JSON: {"judul_shopee":"60-80 karakter","judul_tiktok":"40-60 karakter catchy","deskripsi":"150-200 kata natural","keyword_utama":["kw1","kw2","kw3","kw4","kw5"],"keyword_ekor":["lt1","lt2","lt3"],"hashtag":["#t1","#t2","#t3","#t4","#t5"]}`
+    }]
+  });
+  return JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
 }
 
 function setupResultPlaceholders() {
