@@ -1018,21 +1018,27 @@
         <div class="api-field">
           <label>Model Vision & Teks</label>
           <select id="model-vision" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelVision', this.value)">
-            <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash ⚡ (Rekomendasi)</option>
-            <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro 🧠</option>
-            <option value="openai/gpt-4o">GPT-4o 👁</option>
-            <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 💬</option>
+            <option value="maia/gemini-2.5-flash">Gemini 2.5 Flash ⚡ (Rekomendasi)</option>
+            <option value="maia/gemini-2.0-flash">Gemini 2.0 Flash</option>
+            <option value="maia/gpt-4o">GPT-4o 👁</option>
+            <option value="maia/claude-sonnet-4-5">Claude Sonnet 💬</option>
           </select>
         </div>
         <div class="api-field">
           <label>Model Image Generation</label>
           <select id="model-image" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelImage', this.value)">
-            <option value="openai/dall-e-3">DALL-E 3 🎨 (Rekomendasi)</option>
-            <option value="openai/gpt-image-1">GPT Image 1 ✨</option>
-            <option value="stability/stable-diffusion-3-5-large">Stable Diffusion 3.5</option>
-            <option value="black-forest-labs/flux-1.1-pro">Flux 1.1 Pro 🔥</option>
+            <option value="maia/dall-e-3">DALL-E 3 🎨 (Rekomendasi)</option>
+            <option value="maia/gpt-image-1">GPT Image 1 ✨</option>
+            <option value="maia/flux-1.1-pro">Flux 1.1 Pro 🔥</option>
+            <option value="maia/stable-diffusion-3-5-large">Stable Diffusion 3.5</option>
           </select>
         </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-ghost" onclick="testAPIKey()" style="width:100%;justify-content:center">
+          🔌 Test Koneksi API
+        </button>
+        <div id="testResult" style="margin-top:8px;font-size:0.8rem;display:none"></div>
       </div>
     </div>
 
@@ -1055,7 +1061,7 @@ let selectedBrand = null;
 let currentAnalysis = null;
 let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
 let settings = JSON.parse(localStorage.getItem('cfg_hosela') || JSON.stringify({
-  keys: { maia:'', modelVision:'google/gemini-2.0-flash-001', modelImage:'openai/dall-e-3' },
+  keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'maia/dall-e-3' },
   brands: [
     { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
     { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
@@ -1412,7 +1418,7 @@ Balas HANYA JSON:
 }`;
 
     const res = await maiaFetch('/chat/completions', {
-      model: settings.keys.modelVision || 'google/gemini-2.0-flash-001',
+      model: settings.keys.modelVision || 'maia/gemini-2.5-flash',
       max_tokens: 800,
       messages: [{ role:'user', content:[...imageContents, { type:'text', text: prompt }] }]
     });
@@ -1544,7 +1550,44 @@ async function maiaFetch(endpoint, body) {
     },
     body: JSON.stringify(body)
   });
-  return res.json();
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.message || JSON.stringify(data);
+    throw new Error(`[${res.status}] ${msg}`);
+  }
+  return data;
+}
+
+async function testAPIKey() {
+  const key = document.getElementById('key-maia').value.trim();
+  if (!key) { toast('Isi API key dulu!', 'error'); return; }
+
+  const result = document.getElementById('testResult');
+  result.style.display = 'block';
+  result.innerHTML = `<span style="color:var(--text-muted)">⏳ Testing koneksi...</span>`;
+
+  try {
+    const res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: document.getElementById('model-vision').value || 'maia/gemini-2.5-flash',
+        max_tokens: 20,
+        messages: [{ role:'user', content: 'Balas dengan kata: OK' }]
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || data?.message || `Status ${res.status}`);
+    const reply = data?.choices?.[0]?.message?.content || 'Response OK';
+    result.innerHTML = `<span style="color:var(--success)">✅ Koneksi berhasil! AI menjawab: "${reply}"</span>`;
+    toast('✅ API Key valid!', 'success');
+  } catch(e) {
+    result.innerHTML = `<span style="color:var(--error)">❌ Error: ${e.message}</span>`;
+    toast('❌ Koneksi gagal', 'error');
+  }
 }
 
 async function generateSEO(nama, posisi, desc, brand, imgs) {
@@ -1564,8 +1607,7 @@ BRAND PROFILE:
 ` : '';
 
   const d = await maiaFetch('/chat/completions', {
-    model: settings.keys.modelVision || 'google/gemini-2.0-flash-001',
-    max_tokens: 1200,
+    model: settings.keys.modelVision || 'maia/gemini-2.5-flash',
     messages: [{ role:'user', content:[
       ...imageContents,
       { type:'text', text:`Kamu adalah copywriter e-commerce Indonesia ahli SEO Shopee & TikTok Shop.
@@ -1611,8 +1653,7 @@ async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
     const slot = MAIN_SLOTS[i];
     try {
       const d = await maiaFetch('/images/generations', {
-        model: settings.keys.modelImage || 'openai/dall-e-3',
-        prompt: slot.prompt,
+        model: settings.keys.modelImage || 'maia/dall-e-3',
         n: 1,
         size: '1024x1024'
       });
@@ -1629,7 +1670,7 @@ async function generateVariantPhotos(nama, posisi, desc, brand, imgs) {
   for (let i = 0; i < varianCount; i++) {
     try {
       const d = await maiaFetch('/images/generations', {
-        model: settings.keys.modelImage || 'openai/dall-e-3',
+        model: settings.keys.modelImage || 'maia/dall-e-3',
         prompt: `Realistic product photography: ${nama} variant ${i+1}, installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, subtle depth of field, photorealistic, commercial quality. ${desc||''} ${brand?.catatan_ai||''}`.trim(),
         n: 1,
         size: '1024x1024'
@@ -1818,8 +1859,8 @@ function openSettings() {
   document.getElementById('key-maia').value = settings.keys.maia || '';
   const visionSel = document.getElementById('model-vision');
   const imageSel = document.getElementById('model-image');
-  if (visionSel) visionSel.value = settings.keys.modelVision || 'google/gemini-2.0-flash-001';
-  if (imageSel) imageSel.value = settings.keys.modelImage || 'openai/dall-e-3';
+  if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
+  if (imageSel) imageSel.value = settings.keys.modelImage || 'maia/dall-e-3';
   openModal('settingsModal');
 }
 
