@@ -1094,6 +1094,7 @@
         <label>
           <span class="status-dot idle" id="dot-maia"></span>MaiaRouter API Key
           <span id="key-saved-badge" style="display:none;margin-left:8px;font-size:0.7rem;background:var(--success);color:white;padding:2px 8px;border-radius:100px;font-weight:700">✓ Tersimpan</span>
+          <span id="key-warn-badge"  style="display:none;margin-left:8px;font-size:0.7rem;background:var(--error);color:white;padding:2px 8px;border-radius:100px;font-weight:700">⚠️ Key tidak valid</span>
         </label>
         <div class="api-input-wrap">
           <input type="password" id="key-maia" placeholder="Paste API key di sini..."
@@ -1165,6 +1166,11 @@ let settings = (() => {
     // Migrasi dari format lama (claude/gemini/openai) ke maia
     if (!saved.keys) saved.keys = {};
     if (!saved.keys.maia) saved.keys.maia = '';
+    // Hapus key yang tidak valid (bukan format sk-...)
+    if (saved.keys.maia && !saved.keys.maia.startsWith('sk-')) {
+      console.warn('[Settings] API key invalid dihapus:', saved.keys.maia.slice(0,8)+'...');
+      saved.keys.maia = '';
+    }
     if (!saved.keys.modelVision) saved.keys.modelVision = 'maia/gemini-2.5-flash';
     if (!saved.keys.modelImage)  saved.keys.modelImage  = 'dall-e-3';
     if (!saved.brands || !saved.brands.length) saved.brands = DEFAULT.brands;
@@ -2214,6 +2220,10 @@ function openSettings() {
   const maiaVal = settings.keys.maia || '';
   document.getElementById('key-maia').value = maiaVal;
   showKeySaved(maiaVal);
+  // Peringatan kalau key kosong atau invalid
+  if (!maiaVal || !maiaVal.startsWith('sk-')) {
+    setTimeout(() => toast('⚠️ API Key belum diisi atau tidak valid. Paste key dari MaiaRouter!', 'error'), 300);
+  }
   const visionSel = document.getElementById('model-vision');
   const imageSel  = document.getElementById('model-image');
   if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
@@ -2223,12 +2233,32 @@ function openSettings() {
 
 function showKeySaved(val) {
   const badge = document.getElementById('key-saved-badge');
-  if (badge) badge.style.display = val && val.length > 8 ? 'inline' : 'none';
+  const warn  = document.getElementById('key-warn-badge');
+  const trimmed = (val||'').trim();
+  if (!trimmed) {
+    if (badge) badge.style.display = 'none';
+    if (warn)  warn.style.display  = 'none';
+  } else if (!trimmed.startsWith('sk-')) {
+    if (badge) badge.style.display = 'none';
+    if (warn)  { warn.style.display = 'inline'; warn.textContent = '⚠️ Key harus dimulai sk-'; }
+  } else {
+    if (badge) badge.style.display = 'inline';
+    if (warn)  warn.style.display  = 'none';
+  }
 }
 
 function saveKey(key, val) {
-  settings.keys[key] = val;
-  // Pastikan brands tidak hilang sebelum save
+  if (key === 'maia') {
+    const trimmed = (val||'').trim();
+    // Jangan simpan kalau format salah
+    if (trimmed && !trimmed.startsWith('sk-')) {
+      showKeySaved(trimmed);
+      return; // tidak disimpan ke localStorage
+    }
+    settings.keys.maia = trimmed;
+  } else {
+    settings.keys[key] = val;
+  }
   if (!settings.brands || !settings.brands.length) {
     const saved = JSON.parse(localStorage.getItem('cfg_hosela') || '{}');
     if (saved.brands && saved.brands.length) settings.brands = saved.brands;
@@ -2237,14 +2267,18 @@ function saveKey(key, val) {
 }
 
 function saveSettings() {
-  // Ambil nilai dari input sebelum save
   const maiaInput = document.getElementById('key-maia');
   const visionSel = document.getElementById('model-vision');
   const imageSel  = document.getElementById('model-image');
-  if (maiaInput) settings.keys.maia = maiaInput.value.trim();
+  const newKey = (maiaInput?.value||'').trim();
+  // Validasi key sebelum simpan
+  if (newKey && !newKey.startsWith('sk-')) {
+    toast('⚠️ API Key tidak valid! Harus dimulai sk-', 'error');
+    return;
+  }
+  if (maiaInput) settings.keys.maia = newKey;
   if (visionSel) settings.keys.modelVision = visionSel.value;
   if (imageSel)  settings.keys.modelImage  = imageSel.value;
-
   localStorage.setItem('cfg_hosela', JSON.stringify(settings));
   renderBrands();
   closeModal('settingsModal');
