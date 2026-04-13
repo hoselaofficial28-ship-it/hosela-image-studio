@@ -1821,16 +1821,77 @@ function copyAllSEO() {
 }
 
 async function downloadZIP() {
-  toast('⬇️ Menyiapkan download...', 'info');
-  // Collect all generated photos
   const allImgs = [];
   document.querySelectorAll('#mainPhotosGrid .result-photo img, #variantPhotosGrid .result-photo img').forEach((img, i) => {
-    allImgs.push({ url: img.src, name: img.closest('.result-photo').querySelector('.photo-label')?.textContent || `foto-${i+1}` });
+    const label = img.closest('.result-photo')?.querySelector('.photo-label')?.textContent || `foto-${i+1}`;
+    allImgs.push({ url: img.src, name: label.replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'-') + '.jpg' });
   });
 
-  // For now open all images in new tabs (ZIP requires JSZip library)
-  if (allImgs.length === 0) { toast('Belum ada foto yang di-generate', 'error'); return; }
-  toast(`📦 ${allImgs.length} foto siap. Fitur ZIP memerlukan JSZip.`, 'info');
+  if (allImgs.length === 0) { toast('Belum ada foto yang di-generate!', 'error'); return; }
+
+  toast('⬇️ Menyiapkan download...', 'info');
+
+  // Load JSZip dari CDN
+  if (!window.JSZip) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const nama = document.getElementById('namaProduk').value || 'produk';
+  const zip = new JSZip();
+  const folderMain = zip.folder('foto-utama');
+  const folderVarian = zip.folder('foto-varian');
+
+  // Tambah SEO ke ZIP
+  const seoFields = ['seo-shopee','seo-tiktok','seo-desc','seo-kw','seo-ht'];
+  const labels = ['Judul Shopee','Judul TikTok','Deskripsi','Keyword Utama','Hashtag'];
+  let seoText = `SEO - ${nama}\n${'='.repeat(50)}\n\n`;
+  seoFields.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) seoText += `${labels[i]}:\n${el.innerText}\n\n${'-'.repeat(30)}\n\n`;
+  });
+  zip.file('SEO.txt', seoText);
+
+  // Download & masukkan foto ke ZIP
+  let done = 0;
+  for (const img of allImgs) {
+    try {
+      const isVarian = img.name.toLowerCase().includes('varian');
+      let blob;
+      if (img.url.startsWith('data:')) {
+        const b64 = img.url.split(',')[1];
+        const bytes = atob(b64);
+        const arr = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+        blob = arr;
+      } else {
+        const r = await fetch(img.url);
+        blob = await r.arrayBuffer();
+      }
+      const folder = isVarian ? folderVarian : folderMain;
+      folder.file(`${String(done+1).padStart(2,'0')}-${img.name}`, blob);
+      done++;
+      toast(`⬇️ Memproses ${done}/${allImgs.length} foto...`, 'info');
+    } catch(e) {
+      console.warn('Skip foto:', img.name, e);
+    }
+  }
+
+  // Generate & trigger download
+  const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${nama.replace(/\s+/g,'-')}-${Date.now()}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  toast(`✅ ZIP berhasil didownload! ${done} foto + SEO`, 'success');
 }
 
 // ══════════════════════════════════════════
