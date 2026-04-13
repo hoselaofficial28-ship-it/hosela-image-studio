@@ -1031,11 +1031,9 @@
         <div class="api-field">
           <label>Model Image Generation</label>
           <select id="model-image" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelImage', this.value)">
-            <option value="black-forest-labs/flux-1-schnell">⚡ Flux Schnell — ~Rp 400/13 foto</option>
-            <option value="black-forest-labs/flux-1-1-pro">🔥 Flux 1.1 Pro — ~Rp 2.500/13 foto</option>
-            <option value="stabilityai/stable-diffusion-3-5-large-turbo">💨 SD 3.5 Turbo — ~Rp 600/13 foto</option>
-            <option value="dall-e-3">🎨 DALL-E 3 — ~Rp 12.500/13 foto</option>
-            <option value="dall-e-2">💰 DALL-E 2 — ~Rp 3.000/13 foto</option>
+            <option value="dall-e-3">🎨 DALL-E 3 (Rekomendasi)</option>
+            <option value="dall-e-2">💰 DALL-E 2 (Lebih murah)</option>
+            <option value="gpt-image-1">✨ GPT Image 1</option>
           </select>
         </div>
       </div>
@@ -1070,7 +1068,7 @@ let currentAnalysis = null;
 let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
 let settings = (() => {
   const DEFAULT = {
-    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'black-forest-labs/flux-1-schnell' },
+    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'dall-e-3' },
     brands: [
       { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
       { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
@@ -1085,7 +1083,7 @@ let settings = (() => {
     if (!saved.keys) saved.keys = {};
     if (!saved.keys.maia) saved.keys.maia = '';
     if (!saved.keys.modelVision) saved.keys.modelVision = 'maia/gemini-2.5-flash';
-    if (!saved.keys.modelImage)  saved.keys.modelImage  = 'maia/dall-e-3';
+    if (!saved.keys.modelImage)  saved.keys.modelImage  = 'dall-e-3';
     if (!saved.brands || !saved.brands.length) saved.brands = DEFAULT.brands;
     return saved;
   } catch(e) { return DEFAULT; }
@@ -1634,7 +1632,7 @@ async function maiaFetch(endpoint, body) {
 async function testImageGen() {
   const key = document.getElementById('key-maia')?.value.trim() || settings.keys.maia;
   if (!key) { toast('Isi API key dulu!', 'error'); return; }
-  const model = document.getElementById('model-image')?.value || settings.keys.modelImage || 'black-forest-labs/flux-1-schnell';
+  const model = document.getElementById('model-image')?.value || settings.keys.modelImage || 'dall-e-3';
 
   const result = document.getElementById('testResult');
   result.style.display = 'block';
@@ -1763,7 +1761,7 @@ async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
           'Authorization': `Bearer ${settings.keys.maia}`
         },
         body: JSON.stringify({
-          model: settings.keys.modelImage || 'maia/dall-e-3',
+          model: settings.keys.modelImage || 'dall-e-3',
           prompt: slot.prompt,
           n: 1,
           size: '1024x1024'
@@ -1797,7 +1795,7 @@ async function generateVariantPhotos(nama, posisi, desc, brand, imgs) {
           'Authorization': `Bearer ${settings.keys.maia}`
         },
         body: JSON.stringify({
-          model: settings.keys.modelImage || 'maia/dall-e-3',
+          model: settings.keys.modelImage || 'dall-e-3',
           prompt,
           n: 1,
           size: '1024x1024'
@@ -2066,7 +2064,7 @@ function openSettings() {
   const visionSel = document.getElementById('model-vision');
   const imageSel  = document.getElementById('model-image');
   if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
-  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'black-forest-labs/flux-1-schnell';
+  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'dall-e-3';
   openModal('settingsModal');
 }
 
