@@ -761,6 +761,7 @@
     </div>
     <nav class="header-nav">
       <button class="nav-btn active" onclick="showPage('generate')">⚡ Generate</button>
+      <button class="nav-btn" onclick="showPage('test')">🧪 Test Foto</button>
       <button class="nav-btn" onclick="showPage('history')">📦 Riwayat</button>
     </nav>
     <button class="settings-btn" onclick="openSettings()">⚙️</button>
@@ -868,6 +869,88 @@
         <div class="action-bar">
           <button class="btn btn-ghost" onclick="copyAllSEO()">📋 Copy Semua SEO</button>
           <button class="btn btn-cyan" onclick="downloadZIP()">⬇️ Download ZIP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: TEST FOTO ── -->
+  <div class="page" id="page-test">
+    <div class="hero-badge">🧪 Test Mode</div>
+    <h1 class="page-title">Test 1 Foto Dulu</h1>
+    <p class="page-sub">Test hasil AI sebelum full generate — hemat biaya, pastikan kualitas dulu.</p>
+
+    <!-- Upload test -->
+    <div class="section-card">
+      <div class="section-label">📸 Upload 1 Foto Produk</div>
+      <div class="upload-zone" id="testUploadZone" onclick="triggerTestUpload()" style="min-height:140px">
+        <div class="scan-line"></div>
+        <div class="upload-icon" id="testUploadIcon">📁</div>
+        <div class="upload-text" id="testUploadText">Klik untuk upload foto produk</div>
+      </div>
+      <input type="file" id="testFileInput" accept="image/*" style="display:none" onchange="handleTestFile(this.files[0])">
+    </div>
+
+    <!-- Prompt & settings test -->
+    <div class="section-card">
+      <div class="section-label">⚙️ Pengaturan Test</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nama Produk</label>
+          <input type="text" id="testNama" placeholder="cth: Set Pajangan Boneka Katak">
+        </div>
+        <div class="field">
+          <label>Posisi Pasang</label>
+          <input type="text" id="testPosisi" placeholder="cth: Tengah dashboard mobil">
+        </div>
+        <div class="field full">
+          <label>Pilih Scene yang Mau Ditest</label>
+          <select id="testScene" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.88rem;color:var(--text);outline:none;background:white">
+            <option value="hero">Hero Shot — GPT Image 1 (dengan referensi foto)</option>
+            <option value="lifestyle">Lifestyle Interior — GPT Image 1</option>
+            <option value="closeup">Close-up Detail — GPT Image 1</option>
+            <option value="nightmood">Night Mood — GPT Image 1</option>
+            <option value="fullset">Full Set View — Gemini Imagen 3</option>
+            <option value="wideangle">Wide Angle — Gemini Imagen 3</option>
+            <option value="infografis">Infografis — Gemini Imagen 3</option>
+            <option value="feature">Feature Highlight — Gemini Imagen 3</option>
+            <option value="socialproof">Social Proof — Gemini Imagen 3</option>
+            <option value="varian">Foto Varian — Nano Banana 2</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="doTestPhoto()" id="testBtn">
+        🧪 Generate 1 Foto Test
+      </button>
+    </div>
+
+    <!-- Result test -->
+    <div id="testResultArea" style="display:none;margin-top:24px">
+      <div class="section-card">
+        <div class="section-label">✅ Hasil Test</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+          <!-- Foto hasil -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Output AI</div>
+            <div id="testPhotoBox" style="aspect-ratio:1;border-radius:12px;border:2px solid var(--border);background:var(--blue-pale);overflow:hidden;display:flex;align-items:center;justify-content:center">
+              <div class="generating-spinner"></div>
+            </div>
+          </div>
+          <!-- Prompt yang dipakai -->
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Deskripsi Produk (dari Claude Vision)</div>
+            <div id="testPromptBox" style="background:var(--dark);color:var(--cyan);padding:14px;border-radius:10px;font-size:0.78rem;line-height:1.6;min-height:120px;font-family:monospace"></div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px" id="testModelUsed"></div>
+          </div>
+        </div>
+        <div class="action-bar" style="margin-top:16px">
+          <button class="btn btn-ghost" onclick="doTestPhoto()">🔄 Generate Ulang</button>
+          <button class="btn btn-primary" onclick="showPage('generate');document.querySelectorAll('.nav-btn')[0].classList.add('active');document.querySelectorAll('.nav-btn')[1].classList.remove('active')">
+            ✅ Cocok! Lanjut Full Generate
+          </button>
         </div>
       </div>
     </div>
@@ -2267,8 +2350,127 @@ function resetForm() {
 }
 
 // ══════════════════════════════════════════
-//  INIT
+//  TEST FOTO
 // ══════════════════════════════════════════
+let testFile = null;
+let testBase64 = null;
+
+function triggerTestUpload() { document.getElementById('testFileInput').click(); }
+
+function handleTestFile(file) {
+  if (!file) return;
+  testFile = file;
+  const url = URL.createObjectURL(file);
+  const zone = document.getElementById('testUploadZone');
+  zone.style.backgroundImage = `url(${url})`;
+  zone.style.backgroundSize = 'cover';
+  zone.style.backgroundPosition = 'center';
+  document.getElementById('testUploadIcon').style.display = 'none';
+  document.getElementById('testUploadText').textContent = '✅ ' + file.name;
+  document.getElementById('testUploadText').style.background = 'rgba(0,0,0,0.5)';
+  document.getElementById('testUploadText').style.color = 'white';
+  document.getElementById('testUploadText').style.padding = '4px 10px';
+  document.getElementById('testUploadText').style.borderRadius = '6px';
+  toBase64(file).then(b64 => testBase64 = b64);
+  toast('✅ Foto terupload!', 'success');
+}
+
+async function doTestPhoto() {
+  if (!testFile || !testBase64) { toast('Upload foto dulu!', 'error'); return; }
+  if (!settings.keys.maia) { toast('Isi API key dulu di Settings!', 'error'); return; }
+
+  const nama  = document.getElementById('testNama').value || 'produk dashboard mobil';
+  const posisi = document.getElementById('testPosisi').value || 'tengah dashboard mobil';
+  const scene = document.getElementById('testScene').value;
+  const brand = settings.brands.find(b => b.id === selectedBrand);
+
+  // Tampilkan area hasil
+  document.getElementById('testResultArea').style.display = 'block';
+  document.getElementById('testResultArea').scrollIntoView({ behavior:'smooth' });
+  document.getElementById('testPhotoBox').innerHTML = '<div class="generating-spinner"></div>';
+  document.getElementById('testPromptBox').textContent = '⏳ Claude Vision sedang baca foto...';
+  document.getElementById('testModelUsed').textContent = '';
+
+  try {
+    // Step 1: Claude baca foto
+    const imgContent = [{ type:'image_url', image_url:{ url:`data:${testFile.type};base64,${testBase64}` } }];
+    const visionRes = await maiaFetch('/chat/completions', {
+      model: 'maia/gemini-2.5-flash',
+      max_tokens: 300,
+      messages: [{ role:'user', content:[
+        ...imgContent,
+        { type:'text', text:`Describe this product visually in English for image generation prompt. Focus on: colors, shapes, material, quantity, unique details. One paragraph, no extra text.` }
+      ]}]
+    });
+    const productDesc = visionRes.choices[0].message.content.trim();
+    document.getElementById('testPromptBox').textContent = productDesc;
+
+    // Step 2: Generate foto sesuai scene yang dipilih
+    const brandStyle = brand ? `${(brand.gaya_foto||[]).join(', ')||'natural'}, ${brand.mood_estetika||'premium'}` : 'natural, premium';
+    let photoUrl = null;
+    let modelUsed = '';
+
+    const sceneMap = {
+      hero:        { model:'gpt-image-1',                    scene:`professional hero shot on ${posisi}, studio lighting, 4K commercial photography`, useRef:true },
+      lifestyle:   { model:'gpt-image-1',                    scene:`inside luxury car interior, natural bokeh, warm lifestyle photography`, useRef:true },
+      closeup:     { model:'gpt-image-1',                    scene:`extreme macro close-up, texture and craftsmanship, ultra sharp`, useRef:true },
+      nightmood:   { model:'gpt-image-1',                    scene:`night car interior, warm glowing dashboard lights, cinematic dark mood`, useRef:true },
+      fullset:     { model:'maia/imagen-3.0-generate-001',   scene:`flat lay top-down, all pieces arranged, clean white background`, useRef:false },
+      wideangle:   { model:'maia/imagen-3.0-generate-001',   scene:`wide angle car interior, editorial automotive photography`, useRef:false },
+      infografis:  { model:'maia/imagen-3.0-generate-001',   scene:`product infographic with dimension labels, minimal white background`, useRef:false },
+      feature:     { model:'maia/imagen-3.0-generate-001',   scene:`marketing photo with feature callout overlays`, useRef:false },
+      socialproof: { model:'maia/imagen-3.0-generate-001',   scene:`bestseller badge, 5-star rating, clean e-commerce layout`, useRef:false },
+      varian:      { model:'nano-banana-2',                   scene:`installed at ${posisi}, modern car interior, natural lighting, depth of field`, useRef:false },
+    };
+
+    const s = sceneMap[scene];
+    modelUsed = s.model;
+    const prompt = `${productDesc}. ${s.scene}. Brand style: ${brandStyle}. Photorealistic, commercial quality.`;
+
+    if (s.useRef) {
+      // GPT Image 1 dengan foto referensi
+      try {
+        const imgBlob = base64ToBlob(testBase64, testFile.type);
+        const form = new FormData();
+        form.append('model', s.model);
+        form.append('image[]', imgBlob, 'product.png');
+        form.append('prompt', prompt);
+        form.append('n', '1');
+        form.append('size', '1024x1024');
+        const res = await fetch('https://api.maiarouter.ai/v1/images/edits', {
+          method:'POST',
+          headers:{ 'Authorization':`Bearer ${settings.keys.maia}` },
+          body: form
+        });
+        const d = await res.json();
+        photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+        if (!photoUrl) throw new Error(d?.error?.message||'edits failed');
+      } catch(e) {
+        // Fallback ke generations
+        console.warn('Edits fallback:', e.message);
+        const d = await maiaFetch('/images/generations', { model:s.model, prompt, n:1, size:'1024x1024' });
+        photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      }
+    } else {
+      const d = await maiaFetch('/images/generations', { model:s.model, prompt, n:1, size:'1024x1024' });
+      photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+    }
+
+    if (photoUrl) {
+      document.getElementById('testPhotoBox').innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover">`;
+      document.getElementById('testModelUsed').innerHTML = `<span style="color:var(--success)">✅ Model: ${modelUsed}</span>`;
+      toast('✅ Test foto berhasil!', 'success');
+    } else {
+      throw new Error('Foto tidak dihasilkan');
+    }
+  } catch(e) {
+    document.getElementById('testPhotoBox').innerHTML = `<div style="padding:16px;text-align:center;color:var(--error);font-size:0.8rem">❌ ${e.message}</div>`;
+    document.getElementById('testModelUsed').innerHTML = `<span style="color:var(--error)">Error — coba scene lain</span>`;
+    toast('❌ Test gagal: ' + e.message, 'error');
+  }
+}
+
+
 initParticles();
 renderBrands();
 selectedBrand = settings.brands[0]?.id || null;
