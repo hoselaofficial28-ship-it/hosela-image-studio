@@ -1644,7 +1644,7 @@ async function testImageGen() {
     const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ model, prompt: 'a small red circle on white background', n: 1, size: '256x256' })
+      body: JSON.stringify({ model, prompt: 'a small red circle on white background', n: 1, size: '1024x1024' })
     });
     const data = await res.json();
     console.log('[Test Image Gen] Response:', data);
