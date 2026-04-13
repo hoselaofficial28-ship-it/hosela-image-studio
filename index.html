@@ -1129,6 +1129,17 @@ function renderBrands() {
   const list = document.getElementById('brandList');
   list.innerHTML = '';
 
+  // Auto-restore default brands kalau kosong
+  if (!settings.brands || !settings.brands.length) {
+    settings.brands = [
+      { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
+      { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
+      { id:'pusat',  name:'Pusat Interior',  color:'#FFB800', kesan:'kuning' },
+      { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
+    ];
+    localStorage.setItem('cfg_hosela', JSON.stringify(settings));
+  }
+
   settings.brands.forEach(b => {
     const chip = document.createElement('div');
     chip.className = 'brand-chip' + (selectedBrand === b.id ? ' selected' : '');
@@ -2064,7 +2075,11 @@ function showKeySaved(val) {
 
 function saveKey(key, val) {
   settings.keys[key] = val;
-  // Auto-save ke localStorage setiap kali key berubah
+  // Pastikan brands tidak hilang sebelum save
+  if (!settings.brands || !settings.brands.length) {
+    const saved = JSON.parse(localStorage.getItem('cfg_hosela') || '{}');
+    if (saved.brands && saved.brands.length) settings.brands = saved.brands;
+  }
   localStorage.setItem('cfg_hosela', JSON.stringify(settings));
 }
 
