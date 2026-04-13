@@ -1661,6 +1661,8 @@ async function testImageGen() {
     toast('❌ Image gen gagal — coba model lain', 'error');
   }
 }
+
+async function testAPIKey() {
   const key = document.getElementById('key-maia').value.trim();
   if (!key) { toast('Isi API key dulu!', 'error'); return; }
 
