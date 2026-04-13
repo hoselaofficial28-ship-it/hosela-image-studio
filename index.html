@@ -1008,9 +1008,13 @@
         Bayar via <strong>QRIS</strong> di <a href="https://maiarouter.ai" target="_blank" style="color:var(--blue)">maiarouter.ai</a>
       </div>
       <div class="api-field">
-        <label><span class="status-dot idle" id="dot-maia"></span>MaiaRouter API Key</label>
+        <label>
+          <span class="status-dot idle" id="dot-maia"></span>MaiaRouter API Key
+          <span id="key-saved-badge" style="display:none;margin-left:8px;font-size:0.7rem;background:var(--success);color:white;padding:2px 8px;border-radius:100px;font-weight:700">✓ Tersimpan</span>
+        </label>
         <div class="api-input-wrap">
-          <input type="password" id="key-maia" placeholder="maia-..." oninput="saveKey('maia', this.value)">
+          <input type="password" id="key-maia" placeholder="Paste API key di sini..."
+            oninput="saveKey('maia', this.value); showKeySaved(this.value)">
           <button class="api-toggle" onclick="toggleKey('key-maia', this)">👁</button>
         </div>
       </div>
@@ -1060,15 +1064,28 @@ let varianCount = 3;
 let selectedBrand = null;
 let currentAnalysis = null;
 let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
-let settings = JSON.parse(localStorage.getItem('cfg_hosela') || JSON.stringify({
-  keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'maia/dall-e-3' },
-  brands: [
-    { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
-    { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
-    { id:'pusat', name:'Pusat Interior', color:'#FFB800', kesan:'kuning' },
-    { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
-  ]
-}));
+let settings = (() => {
+  const DEFAULT = {
+    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'maia/dall-e-3' },
+    brands: [
+      { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
+      { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
+      { id:'pusat',  name:'Pusat Interior',  color:'#FFB800', kesan:'kuning' },
+      { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
+    ]
+  };
+  try {
+    const saved = JSON.parse(localStorage.getItem('cfg_hosela') || 'null');
+    if (!saved) return DEFAULT;
+    // Migrasi dari format lama (claude/gemini/openai) ke maia
+    if (!saved.keys) saved.keys = {};
+    if (!saved.keys.maia) saved.keys.maia = '';
+    if (!saved.keys.modelVision) saved.keys.modelVision = 'maia/gemini-2.5-flash';
+    if (!saved.keys.modelImage)  saved.keys.modelImage  = 'maia/dall-e-3';
+    if (!saved.brands || !saved.brands.length) saved.brands = DEFAULT.brands;
+    return saved;
+  } catch(e) { return DEFAULT; }
+})();
 
 // ══════════════════════════════════════════
 //  PARTICLES
@@ -1958,17 +1975,36 @@ function deleteHistory(i) {
 //  SETTINGS
 // ══════════════════════════════════════════
 function openSettings() {
-  document.getElementById('key-maia').value = settings.keys.maia || '';
+  const maiaVal = settings.keys.maia || '';
+  document.getElementById('key-maia').value = maiaVal;
+  showKeySaved(maiaVal);
   const visionSel = document.getElementById('model-vision');
-  const imageSel = document.getElementById('model-image');
+  const imageSel  = document.getElementById('model-image');
   if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
-  if (imageSel) imageSel.value = settings.keys.modelImage || 'maia/dall-e-3';
+  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'maia/dall-e-3';
   openModal('settingsModal');
 }
 
-function saveKey(key, val) { settings.keys[key] = val; }
+function showKeySaved(val) {
+  const badge = document.getElementById('key-saved-badge');
+  if (badge) badge.style.display = val && val.length > 8 ? 'inline' : 'none';
+}
+
+function saveKey(key, val) {
+  settings.keys[key] = val;
+  // Auto-save ke localStorage setiap kali key berubah
+  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
+}
 
 function saveSettings() {
+  // Ambil nilai dari input sebelum save
+  const maiaInput = document.getElementById('key-maia');
+  const visionSel = document.getElementById('model-vision');
+  const imageSel  = document.getElementById('model-image');
+  if (maiaInput) settings.keys.maia = maiaInput.value.trim();
+  if (visionSel) settings.keys.modelVision = visionSel.value;
+  if (imageSel)  settings.keys.modelImage  = imageSel.value;
+
   localStorage.setItem('cfg_hosela', JSON.stringify(settings));
   renderBrands();
   closeModal('settingsModal');
