@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hosela Image Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #0057FF;
+    --blue-mid: #0099FF;
+    --blue-light: #C8E6FF;
+    --blue-pale: #EAF5FF;
+    --white: #FFFFFF;
+    --dark: #001640;
+    --dark-mid: #002366;
+    --cyan: #00D4FF;
+    --text: #1A2E4A;
+    --text-muted: #6B8CAE;
+    --border: #B8D8F0;
+    --success: #00C896;
+    --warn: #FF8C00;
+    --error: #FF3D5A;
+    --shadow: 0 4px 24px rgba(0,87,255,0.12);
+    --shadow-lg: 0 8px 48px rgba(0,87,255,0.2);
+    --glow: 0 0 20px rgba(0,212,255,0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Exo 2', sans-serif;
+    background: #F0F7FF;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── ANIMATED BG ── */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(0,87,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,87,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+  }
+  @keyframes gridMove { to { background-position: 40px 40px; } }
+
+  .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .particle {
+    position: absolute; border-radius: 50%;
+    background: var(--cyan); opacity: 0;
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+    10%  { opacity: 0.6; }
+    90%  { opacity: 0.3; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .header-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 24px;
+    height: 64px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-size: 1.1rem;
+    color: var(--blue);
+    display: flex; align-items: center; gap: 10px;
+    letter-spacing: 0.05em;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--glow);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 10px rgba(0,212,255,0.4); }
+    50%      { box-shadow: 0 0 25px rgba(0,212,255,0.8); }
+  }
+  .header-nav { display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 8px 16px; border-radius: 8px;
+    border: none; cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem; font-weight: 600;
+    transition: all 0.2s;
+    color: var(--text-muted); background: transparent;
+  }
+  .nav-btn.active, .nav-btn:hover {
+    background: var(--blue-pale); color: var(--blue);
+  }
+  .nav-btn.active { color: var(--blue); }
+  .settings-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .settings-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  /* ── MAIN ── */
+  main {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  /* ── HERO SCAN LINE ── */
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    color: white; padding: 6px 16px; border-radius: 100px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 24px;
+    box-shadow: var(--glow);
+  }
+  .hero-badge::before {
+    content: ''; width: 6px; height: 6px;
+    background: white; border-radius: 50%;
+    animation: blink 1s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  .page-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--dark); margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .page-sub {
+    color: var(--text-muted); font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+
+  /* ── BRAND SELECTOR ── */
+  .section-card {
+    background: var(--white); border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+  }
+  .section-card:hover { box-shadow: var(--shadow-lg); }
+  .section-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--blue); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ── BRAND CHIPS ── */
+  .brand-list { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .brand-chip {
+    padding: 0; border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--white); cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    transition: all 0.2s; color: var(--text-muted);
+    display: flex; align-items: stretch;
+    position: relative; overflow: hidden;
+  }
+  .brand-chip-main {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; font-weight: 600; font-size: 0.85rem;
+  }
+  .brand-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .brand-chip-edit {
+    border-left: 1px solid var(--border);
+    padding: 0 10px; font-size: 13px; display: flex;
+    align-items: center; background: transparent;
+    cursor: pointer; color: var(--text-muted);
+    transition: all 0.2s; border-radius: 0;
+    border-top: none; border-right: none; border-bottom: none;
+  }
+  .brand-chip-edit:hover { background: var(--blue-pale); color: var(--blue); }
+  .brand-chip.selected {
+    border-color: var(--blue); color: var(--blue);
+    background: var(--blue-pale);
+  }
+  .brand-chip.selected .brand-chip-edit { border-left-color: rgba(0,87,255,0.2); }
+  .brand-chip:hover { border-color: var(--blue-mid); }
+
+  .add-brand-chip {
+    padding: 8px 14px; border-radius: 10px;
+    border: 2px dashed var(--border);
+    background: transparent; cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.85rem; color: var(--text-muted);
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    font-weight: 600;
+  }
+  .add-brand-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+
+  /* ── BRAND PROFILE PANEL ── */
+  .brand-profile-panel {
+    margin-top: 16px; padding: 16px;
+    background: linear-gradient(135deg, var(--blue-pale), #DCF0FF);
+    border-radius: 12px; border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    animation: fadeIn 0.25s ease;
+    display: none;
+  }
+  .brand-profile-panel.open { display: block; }
+  .brand-profile-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .brand-profile-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .brand-profile-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .brand-profile-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .brand-tag {
+    padding: 3px 10px; border-radius: 100px;
+    background: white; border: 1px solid var(--border);
+    font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+  }
+  .brand-tag.highlight { background: var(--blue); color: white; border-color: var(--blue); }
+
+  /* ── BRAND EDIT MODAL ── */
+  .brand-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width:540px){ .brand-edit-grid{ grid-template-columns:1fr; } }
+  .be-field { display: flex; flex-direction: column; gap: 5px; }
+  .be-field.full { grid-column: 1/-1; }
+  .be-label {
+    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .be-input, .be-textarea, .be-select {
+    padding: 10px 12px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    font-family: 'Exo 2', sans-serif; font-size: 0.88rem; color: var(--text);
+    outline: none; transition: all 0.2s; background: white;
+    resize: vertical;
+  }
+  .be-input:focus, .be-textarea:focus, .be-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,87,255,0.08); }
+  .be-color-row { display: flex; align-items: center; gap: 10px; }
+  .be-color-pick { width: 40px; height: 40px; border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; padding: 2px; flex-shrink:0; }
+  .gaya-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .gaya-opt {
+    padding: 6px 10px 6px 14px; border-radius: 8px;
+    border: 1.5px solid var(--border); background: white;
+    font-family: 'Exo 2', sans-serif; font-size: 0.8rem; font-weight: 600;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+    animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .gaya-opt.active { border-color: var(--blue); background: var(--blue-pale); color: var(--blue); }
+  .gaya-opt:hover { border-color: var(--blue-mid); }
+  .gaya-opt-label { flex: 1; }
+  .gaya-opt-del {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 11px; color: var(--text-muted); padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; transition: all 0.15s; flex-shrink: 0;
+  }
+  .gaya-opt-del:hover { background: var(--error); color: white; }
+  .gaya-opt.active .gaya-opt-del { color: var(--blue); }
+  .gaya-opt.active .gaya-opt-del:hover { background: var(--error); color: white; }
+
+  /* ── UPLOAD GRID ── */
+  .upload-zone {
+    min-height: 200px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    background: var(--blue-pale);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s;
+    padding: 32px; position: relative; overflow: hidden;
+  }
+  .upload-zone.drag-over {
+    border-color: var(--blue); background: #D6EEFF;
+    box-shadow: var(--glow);
+  }
+  .upload-zone .scan-line {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    top: -2px; animation: scan 2.5s ease-in-out infinite;
+    opacity: 0;
+  }
+  .upload-zone:hover .scan-line { opacity: 1; }
+  @keyframes scan { 0%{ top:-2px } 100%{ top:100% } }
+
+  .upload-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
+  .upload-text { font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
+  .upload-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; opacity: 0.7; }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-top: 16px;
+  }
+  .photo-item {
+    aspect-ratio: 1; border-radius: 10px;
+    overflow: hidden; position: relative;
+    border: 2px solid var(--border);
+    background: var(--blue-pale);
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes popIn { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
+  .photo-item img { width:100%; height:100%; object-fit:cover; }
+  .photo-remove {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(255,61,90,0.9); color: white;
+    border: none; cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .photo-item:hover .photo-remove { opacity: 1; }
+  .photo-add-more {
+    aspect-ratio: 1; border-radius: 10px;
+    border: 2px dashed var(--border);
+    background: var(--blue-pale);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.5rem;
+    color: var(--text-muted); transition: all 0.2s;
+    font-weight: 300;
+  }
+  .photo-add-more:hover { border-color: var(--blue); color: var(--blue); background: #DCF0FF; }
+  .photo-add-more span { font-size: 0.65rem; font-weight: 600; margin-top: 4px; }
+
+  /* ── FORM ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 0.8rem; font-weight: 700;
+    color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .field input, .field textarea, .field select {
+    padding: 12px 14px; border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.9rem; color: var(--text);
+    transition: all 0.2s; outline: none;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0,87,255,0.1);
+  }
+  .field .optional-tag {
+    font-size: 0.7rem; color: var(--text-muted);
+    font-weight: 400; margin-left: 6px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .field .hint {
+    font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;
+  }
+
+  .varian-counter {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .counter-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--white); cursor: pointer;
+    font-size: 1.1rem; font-weight: 700;
+    color: var(--blue); transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .counter-btn:hover { background: var(--blue-pale); border-color: var(--blue); }
+  .counter-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem; font-weight: 700;
+    color: var(--dark); min-width: 40px; text-align: center;
+  }
+  .counter-label { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* ── PREVIEW BTN ── */
+  .action-bar {
+    display: flex; gap: 12px; margin-top: 24px;
+    justify-content: flex-end;
+  }
+  .btn {
+    padding: 12px 28px; border-radius: 10px;
+    border: none; cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 700; font-size: 0.9rem;
+    transition: all 0.25s; letter-spacing: 0.03em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn-ghost {
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--text-muted);
+  }
+  .btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), var(--blue-mid));
+    color: white; box-shadow: 0 4px 16px rgba(0,87,255,0.35);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,87,255,0.45);
+  }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-cyan {
+    background: linear-gradient(135deg, var(--cyan), var(--blue-mid));
+    color: white; box-shadow: 0 4px 16px rgba(0,212,255,0.35);
+  }
+  .btn-cyan:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,212,255,0.45); }
+
+  /* ── PREVIEW MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,22,64,0.7); backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--white); border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    max-width: 560px; width: 100%;
+    padding: 32px;
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem; font-weight: 700; color: var(--dark);
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: none; background: var(--blue-pale);
+    cursor: pointer; font-size: 16px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: #FFE0E5; color: var(--error); }
+
+  .analysis-box {
+    background: linear-gradient(135deg, var(--blue-pale), #DCF5FF);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 16px;
+    border-left: 4px solid var(--blue);
+  }
+  .analysis-label {
+    font-size: 0.7rem; font-weight: 700;
+    color: var(--blue); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .analysis-text { font-size: 0.9rem; color: var(--text); line-height: 1.6; }
+
+  .output-plan { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .plan-item {
+    background: var(--blue-pale); border-radius: 10px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .plan-icon { font-size: 1.2rem; }
+  .plan-text { font-size: 0.82rem; font-weight: 600; color: var(--dark); }
+  .plan-sub { font-size: 0.72rem; color: var(--text-muted); }
+
+  .cost-row {
+    background: linear-gradient(90deg, var(--dark), var(--dark-mid));
+    border-radius: 10px; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cost-label { font-size: 0.8rem; color: rgba(255,255,255,0.6); font-weight: 500; }
+  .cost-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem; font-weight: 700; color: var(--cyan);
+  }
+
+  /* ── LOADING ── */
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,22,64,0.85); backdrop-filter: blur(12px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .loading-overlay.open { opacity: 1; pointer-events: all; }
+  .loading-ring {
+    width: 80px; height: 80px; position: relative; margin-bottom: 24px;
+  }
+  .loading-ring::before, .loading-ring::after {
+    content: ''; position: absolute; border-radius: 50%;
+    border: 3px solid transparent;
+  }
+  .loading-ring::before {
+    inset: 0; border-top-color: var(--blue);
+    animation: spin 1s linear infinite;
+  }
+  .loading-ring::after {
+    inset: 10px; border-top-color: var(--cyan);
+    animation: spin 0.6s linear infinite reverse;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-icon { font-size: 1.8rem; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .loading-status {
+    font-family: 'Orbitron', sans-serif;
+    color: white; font-size: 0.9rem; letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+  .loading-sub { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+  .loading-steps { display: flex; gap: 6px; margin-top: 20px; }
+  .step-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.3s;
+  }
+  .step-dot.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .step-dot.done { background: var(--success); }
+
+  /* ── HISTORY PAGE ── */
+  .history-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .history-card {
+    background: var(--white); border-radius: 16px;
+    border: 1px solid var(--border); overflow: hidden;
+    box-shadow: var(--shadow); transition: all 0.25s;
+    cursor: pointer;
+  }
+  .history-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .history-thumb {
+    height: 160px; background: var(--blue-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem; position: relative; overflow: hidden;
+  }
+  .history-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .history-brand-badge {
+    position: absolute; top: 10px; left: 10px;
+    padding: 4px 10px; border-radius: 100px;
+    font-size: 0.7rem; font-weight: 700;
+    color: white; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .history-body { padding: 16px; }
+  .history-name {
+    font-weight: 700; font-size: 0.95rem;
+    color: var(--dark); margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .history-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
+  .history-actions { display: flex; gap: 8px; }
+  .history-btn {
+    flex: 1; padding: 8px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--white); cursor: pointer;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.78rem; font-weight: 600;
+    color: var(--text-muted); transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .history-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
+  .history-btn.primary { border-color: var(--blue); color: var(--blue); }
+  .history-btn.danger:hover { border-color: var(--error); color: var(--error); background: #FFF0F3; }
+
+  .empty-state {
+    text-align: center; padding: 80px 20px;
+  }
+  .empty-icon { font-size: 4rem; margin-bottom: 16px; opacity: 0.3; }
+  .empty-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
+  .empty-sub { font-size: 0.85rem; color: var(--text-muted); opacity: 0.7; }
+
+  /* ── SETTINGS MODAL ── */
+  .settings-section { margin-bottom: 24px; }
+  .settings-section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.75rem; font-weight: 700;
+    color: var(--blue); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .api-field { margin-bottom: 12px; }
+  .api-field label { font-size: 0.8rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 6px; }
+  .api-input-wrap { position: relative; }
+  .api-input-wrap input {
+    width: 100%; padding: 10px 40px 10px 12px;
+    border-radius: 8px; border: 1.5px solid var(--border);
+    font-family: 'Exo 2', sans-serif; font-size: 0.85rem;
+    color: var(--text); outline: none; transition: all 0.2s;
+  }
+  .api-input-wrap input:focus { border-color: var(--blue); }
+  .api-toggle {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px;
+  }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.ok { background: var(--success); }
+  .status-dot.err { background: var(--error); }
+  .status-dot.idle { background: var(--text-muted); }
+
+  /* ── BRAND MANAGER ── */
+  .brand-manager-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .brand-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--blue-pale);
+  }
+  .brand-color-pick { width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer; padding: 0; }
+  .brand-name-input {
+    flex: 1; border: none; background: transparent;
+    font-family: 'Exo 2', sans-serif; font-weight: 600;
+    font-size: 0.88rem; color: var(--dark); outline: none;
+  }
+  .brand-delete {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 16px; padding: 4px;
+  }
+  .brand-delete:hover { color: var(--error); }
+
+  /* ── SEO OUTPUT ── */
+  .seo-box {
+    background: var(--dark); border-radius: 12px; padding: 20px;
+    margin-top: 12px;
+  }
+  .seo-field { margin-bottom: 16px; }
+  .seo-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--cyan); margin-bottom: 6px;
+  }
+  .seo-value {
+    color: white; font-size: 0.88rem; line-height: 1.6;
+    font-family: 'Exo 2', sans-serif;
+  }
+  .seo-copy-btn {
+    padding: 6px 14px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.1); color: white;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; margin-top: 8px;
+    font-family: 'Exo 2', sans-serif;
+  }
+  .seo-copy-btn:hover { background: rgba(0,212,255,0.2); border-color: var(--cyan); }
+  .seo-copy-btn.copied { background: rgba(0,200,150,0.2); border-color: var(--success); color: var(--success); }
+
+  /* ── RESULT PHOTOS ── */
+  .result-section { margin-top: 28px; }
+  .result-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem; font-weight: 700;
+    color: var(--dark); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .result-count {
+    background: var(--blue); color: white;
+    padding: 2px 10px; border-radius: 100px; font-size: 0.72rem;
+  }
+  .result-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .result-photo {
+    border-radius: 12px; overflow: hidden;
+    border: 2px solid var(--border); aspect-ratio: 1;
+    background: var(--blue-pale); position: relative;
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .result-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .result-photo .photo-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,22,64,0.85));
+    color: white; font-size: 0.7rem; font-weight: 600;
+    padding: 20px 8px 8px; text-align: center;
+  }
+  .generating-placeholder {
+    border-radius: 12px; aspect-ratio: 1;
+    background: linear-gradient(135deg, var(--blue-pale), #D0ECFF);
+    border: 2px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; animation: shimmer 2s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%,100% { opacity: 0.7; } 50% { opacity: 1; }
+  }
+  .generating-spinner {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    animation: spin 0.8s linear infinite;
+  }
+  .gen-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+
+  /* Scroll */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--blue-mid); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 500;
+    padding: 12px 20px; border-radius: 10px;
+    background: var(--dark); color: white;
+    font-size: 0.85rem; font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 4px solid var(--success); }
+  .toast.error { border-left: 4px solid var(--error); }
+  .toast.info { border-left: 4px solid var(--cyan); }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="particles" id="particles"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      HOSELA IMAGE STUDIO
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="showPage('generate')">⚡ Generate</button>
+      <button class="nav-btn" onclick="showPage('history')">📦 Riwayat</button>
+    </nav>
+    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <!-- ── PAGE: GENERATE ── -->
+  <div class="page active" id="page-generate">
+    <div class="hero-badge">AI Image Studio v1.0</div>
+    <h1 class="page-title">Generate Foto Produk</h1>
+    <p class="page-sub">Upload foto mentah → AI buat 9 foto listing + foto varian + SEO otomatis</p>
+
+    <!-- BRAND SELECTOR -->
+    <div class="section-card">
+      <div class="section-label">🏷️ Pilih Brand</div>
+      <div class="brand-list" id="brandList">
+        <!-- rendered by JS -->
+      </div>
+      <!-- BRAND PROFILE PANEL -->
+      <div class="brand-profile-panel" id="brandProfilePanel"></div>
+    </div>
+
+    <!-- UPLOAD ZONE -->
+    <div class="section-card">
+      <div class="section-label">📸 Upload Foto Semua Varian</div>
+      <div class="upload-zone" id="uploadZone" onclick="triggerUpload()">
+        <div class="scan-line"></div>
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Klik atau drag foto ke sini</div>
+        <div class="upload-sub">Upload semua varian warna sekaligus — tidak ada batas</div>
+      </div>
+      <div class="photo-grid" id="photoGrid" style="display:none"></div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
+    </div>
+
+    <!-- FORM -->
+    <div class="section-card">
+      <div class="section-label">📝 Detail Produk</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nama Produk</label>
+          <input type="text" id="namaProduk" placeholder="cth: Set Pajangan Dashboard Boneka Couple">
+        </div>
+        <div class="field">
+          <label>Posisi Pasang</label>
+          <input type="text" id="posisiPasang" placeholder="cth: Tengah dashboard mobil">
+        </div>
+        <div class="field full">
+          <label>Deskripsi Tambahan <span class="optional-tag">• opsional</span></label>
+          <textarea id="deskripsiTambahan" rows="2" placeholder="cth: Tonjolkan helikopternya, kesan mewah, cocok untuk pria"></textarea>
+        </div>
+        <div class="field full">
+          <label>Jumlah Varian Warna yang Ingin Dibuat</label>
+          <div style="display:flex; align-items:center; gap:16px; margin-top:4px;">
+            <div class="varian-counter">
+              <button class="counter-btn" onclick="changeVarian(-1)">−</button>
+              <div class="counter-display" id="varianDisplay">3</div>
+              <button class="counter-btn" onclick="changeVarian(1)">+</button>
+            </div>
+            <div class="counter-label">
+              foto varian akan di-generate<br>
+              <span style="font-size:0.72rem;color:var(--text-muted)">masing-masing real di dalam mobil</span>
+            </div>
+          </div>
+          <div class="hint">Sesuaikan dengan jumlah foto yang kamu upload</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTION -->
+    <div class="action-bar">
+      <button class="btn btn-ghost" onclick="resetForm()">🔄 Reset</button>
+      <button class="btn btn-primary" id="previewBtn" onclick="doPreview()">
+        👁 Preview & Analisa
+      </button>
+    </div>
+
+    <!-- RESULT AREA (muncul setelah generate) -->
+    <div id="resultArea" style="display:none; margin-top:32px;">
+      <div class="section-card">
+        <div class="section-label">✅ Hasil Generate</div>
+
+        <div class="result-section">
+          <div class="result-title">
+            9 Foto Utama Marketplace
+            <span class="result-count" id="mainPhotoCount">0/9</span>
+          </div>
+          <div class="result-grid" id="mainPhotosGrid"></div>
+        </div>
+
+        <div class="result-section">
+          <div class="result-title">
+            Foto Varian
+            <span class="result-count" id="variantPhotoCount">0/0</span>
+          </div>
+          <div class="result-grid" id="variantPhotosGrid"></div>
+        </div>
+
+        <div class="result-section">
+          <div class="result-title">SEO & Deskripsi</div>
+          <div class="seo-box" id="seoBox"></div>
+        </div>
+
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="copyAllSEO()">📋 Copy Semua SEO</button>
+          <button class="btn btn-cyan" onclick="downloadZIP()">⬇️ Download ZIP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAGE: HISTORY ── -->
+  <div class="page" id="page-history">
+    <div class="hero-badge">Riwayat Produk</div>
+    <h1 class="page-title">Produk Tersimpan</h1>
+    <p class="page-sub">Semua produk yang pernah di-generate. Bisa download ulang kapan saja.</p>
+    <div class="history-grid" id="historyGrid"></div>
+  </div>
+</main>
+
+<!-- PREVIEW MODAL -->
+<div class="modal-overlay" id="previewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔍 Preview Analisa AI</div>
+      <button class="modal-close" onclick="closeModal('previewModal')">✕</button>
+    </div>
+
+    <div class="analysis-box">
+      <div class="analysis-label">🤖 Claude Vision membaca:</div>
+      <div class="analysis-text" id="analysisText">Menganalisa foto...</div>
+    </div>
+
+    <div class="output-plan" id="outputPlan"></div>
+
+    <div class="cost-row">
+      <div>
+        <div class="cost-label">Estimasi biaya generate</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:2px">Gemini gratis • GPT + Claude API</div>
+      </div>
+      <div class="cost-value" id="costEstimate">~Rp 0</div>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('previewModal')">❌ Batal</button>
+      <button class="btn btn-primary" style="flex:2" onclick="doGenerate()">✅ Generate Sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-ring">
+    <div class="loading-icon">🤖</div>
+  </div>
+  <div class="loading-status" id="loadingStatus">MENGANALISA PRODUK</div>
+  <div class="loading-sub" id="loadingSub">Claude Vision sedang membaca foto...</div>
+  <div class="loading-steps">
+    <div class="step-dot" id="step0"></div>
+    <div class="step-dot" id="step1"></div>
+    <div class="step-dot" id="step2"></div>
+    <div class="step-dot" id="step3"></div>
+    <div class="step-dot" id="step4"></div>
+  </div>
+</div>
+
+<!-- BRAND EDIT MODAL -->
+<div class="modal-overlay" id="brandEditModal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="brandEditTitle">✏️ Edit Brand</div>
+      <button class="modal-close" onclick="closeBrandEdit()">✕</button>
+    </div>
+
+    <div class="brand-edit-grid">
+      <div class="be-field">
+        <div class="be-label">Nama Brand</div>
+        <input class="be-input" id="be-name" placeholder="cth: Hosela Official">
+      </div>
+      <div class="be-field">
+        <div class="be-label">Warna Brand</div>
+        <div class="be-color-row">
+          <input type="color" class="be-color-pick" id="be-color" value="#0057FF">
+          <input class="be-input" id="be-kesan" placeholder="Kesan warna cth: merah elegan" style="flex:1">
+        </div>
+      </div>
+
+      <div class="be-field full">
+        <div class="be-label">Gaya Foto Produk</div>
+        <div class="gaya-options" id="gayaOptions"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+          <input class="be-input" id="gayaNewInput" placeholder="Tambah gaya baru cth: Vintage, Cinematic..."
+            style="flex:1;padding:8px 12px"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addGayaCustom()}">
+          <button class="btn btn-ghost" onclick="addGayaCustom()"
+            style="padding:8px 14px;font-size:0.82rem;white-space:nowrap;flex-shrink:0">
+            ＋ Tambah
+          </button>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:5px">
+          Klik gaya untuk aktif/nonaktif • Klik ✕ untuk hapus permanen
+        </div>
+      </div>
+
+      <div class="be-field">
+        <div class="be-label">Target Market</div>
+        <input class="be-input" id="be-target" placeholder="cth: Wanita 20-35 tahun, pecinta dekorasi">
+      </div>
+      <div class="be-field">
+        <div class="be-label">Mood & Estetika</div>
+        <input class="be-input" id="be-mood" placeholder="cth: Hangat, pastel soft, ceria">
+      </div>
+
+      <div class="be-field full">
+        <div class="be-label">Catatan Khusus untuk AI <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— bisa diubah kapan saja</span></div>
+        <textarea class="be-textarea" id="be-catatan" rows="3"
+          placeholder="cth: Selalu tampilkan produk dengan background interior mobil mewah. Hindari tampilan terlalu ramai. Gunakan pencahayaan hangat. Kesan premium dan eksklusif."></textarea>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">💡 Semakin detail, semakin konsisten foto yang dihasilkan AI untuk brand ini</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
+      <button class="btn btn-ghost" id="brandDeleteBtn" onclick="deleteBrandFromEdit()" style="color:var(--error);border-color:var(--error)">🗑️ Hapus</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-ghost" onclick="closeBrandEdit()">Batal</button>
+      <button class="btn btn-primary" onclick="saveBrandEdit()">💾 Simpan Brand</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Pengaturan</div>
+      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">🔑 MaiaRouter API Key</div>
+      <div style="background:linear-gradient(135deg,#EAF5FF,#DCF0FF);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.8rem;color:var(--text-muted);line-height:1.5">
+        🇮🇩 <strong style="color:var(--blue)">MaiaRouter</strong> — platform AI buatan Indonesia.<br>
+        1 API key untuk semua fungsi: analisa foto, generate gambar, SEO.<br>
+        Bayar via <strong>QRIS</strong> di <a href="https://maiarouter.ai" target="_blank" style="color:var(--blue)">maiarouter.ai</a>
+      </div>
+      <div class="api-field">
+        <label><span class="status-dot idle" id="dot-maia"></span>MaiaRouter API Key</label>
+        <div class="api-input-wrap">
+          <input type="password" id="key-maia" placeholder="maia-..." oninput="saveKey('maia', this.value)">
+          <button class="api-toggle" onclick="toggleKey('key-maia', this)">👁</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div class="api-field">
+          <label>Model Vision & Teks</label>
+          <select id="model-vision" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelVision', this.value)">
+            <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash ⚡ (Rekomendasi)</option>
+            <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro 🧠</option>
+            <option value="openai/gpt-4o">GPT-4o 👁</option>
+            <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 💬</option>
+          </select>
+        </div>
+        <div class="api-field">
+          <label>Model Image Generation</label>
+          <select id="model-image" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelImage', this.value)">
+            <option value="openai/dall-e-3">DALL-E 3 🎨 (Rekomendasi)</option>
+            <option value="openai/gpt-image-1">GPT Image 1 ✨</option>
+            <option value="stability/stable-diffusion-3-5-large">Stable Diffusion 3.5</option>
+            <option value="black-forest-labs/flux-1.1-pro">Flux 1.1 Pro 🔥</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">💾 Simpan Pengaturan</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let uploadedFiles = [];
+let varianCount = 3;
+let selectedBrand = null;
+let currentAnalysis = null;
+let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
+let settings = JSON.parse(localStorage.getItem('cfg_hosela') || JSON.stringify({
+  keys: { maia:'', modelVision:'google/gemini-2.0-flash-001', modelImage:'openai/dall-e-3' },
+  brands: [
+    { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
+    { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
+    { id:'pusat', name:'Pusat Interior', color:'#FFB800', kesan:'kuning' },
+    { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
+  ]
+}));
+
+// ══════════════════════════════════════════
+//  PARTICLES
+// ══════════════════════════════════════════
+function initParticles() {
+  const c = document.getElementById('particles');
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const s = Math.random() * 4 + 2;
+    p.style.cssText = `
+      width:${s}px; height:${s}px;
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*10}s;
+      opacity:${Math.random()*0.4+0.1};
+    `;
+    c.appendChild(p);
+  }
+}
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ══════════════════════════════════════════
+//  BRAND
+// ══════════════════════════════════════════
+function renderBrands() {
+  const list = document.getElementById('brandList');
+  list.innerHTML = '';
+
+  settings.brands.forEach(b => {
+    const chip = document.createElement('div');
+    chip.className = 'brand-chip' + (selectedBrand === b.id ? ' selected' : '');
+
+    const main = document.createElement('div');
+    main.className = 'brand-chip-main';
+    main.innerHTML = `<span class="brand-dot" style="background:${b.color}"></span>${b.name}`;
+    main.onclick = () => { selectedBrand = b.id; renderBrands(); showBrandProfile(b); };
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'brand-chip-edit';
+    editBtn.textContent = '✏️';
+    editBtn.title = 'Edit profil brand';
+    editBtn.onclick = (e) => { e.stopPropagation(); openBrandEdit(b.id); };
+
+    chip.appendChild(main);
+    chip.appendChild(editBtn);
+    list.appendChild(chip);
+  });
+
+  // Add brand button
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-brand-chip';
+  addBtn.innerHTML = '＋ Tambah Brand';
+  addBtn.onclick = () => openBrandEdit(null);
+  list.appendChild(addBtn);
+
+  if (!selectedBrand && settings.brands.length) {
+    selectedBrand = settings.brands[0].id;
+    renderBrands();
+  } else if (selectedBrand) {
+    const b = settings.brands.find(x => x.id === selectedBrand);
+    if (b) showBrandProfile(b);
+  }
+}
+
+function showBrandProfile(b) {
+  const panel = document.getElementById('brandProfilePanel');
+  if (!b) { panel.classList.remove('open'); return; }
+
+  const gaya = (b.gaya_foto || []).join(', ') || '—';
+  const target = b.target_market || '—';
+  const mood = b.mood_estetika || '—';
+  const catatan = b.catatan_ai || '—';
+
+  panel.innerHTML = `
+    <div class="brand-profile-header">
+      <div class="brand-profile-title">
+        <span class="brand-profile-dot" style="background:${b.color}"></span>
+        Profil Brand — ${b.name}
+      </div>
+      <button class="btn btn-ghost" style="padding:5px 12px;font-size:0.75rem" onclick="openBrandEdit('${b.id}')">✏️ Edit</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:0.83rem">
+      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Gaya Foto</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${gaya}</div></div>
+      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Target Market</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${target}</div></div>
+      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Mood & Estetika</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${mood}</div></div>
+      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Kesan Warna</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${b.kesan||'—'}</div></div>
+    </div>
+    ${catatan !== '—' ? `
+    <div style="margin-top:12px;padding:10px 12px;background:rgba(0,87,255,0.06);border-radius:8px;font-size:0.82rem;color:var(--text);line-height:1.5">
+      <span style="font-weight:700;color:var(--blue);font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">📌 Instruksi AI</span><br>
+      <span style="margin-top:4px;display:block">${catatan}</span>
+    </div>` : `
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">💡 Belum ada instruksi AI. <a href="#" onclick="openBrandEdit('${b.id}');return false" style="color:var(--blue)">Tambahkan sekarang</a> untuk hasil foto lebih konsisten.</div>
+    `}
+  `;
+  panel.classList.add('open');
+}
+
+// ── Brand Edit Modal ──
+let editingBrandId = null;
+const GAYA_LIST = ['natural','popmart','luxury','minimalis','playful','dark','editorial','kawaii'];
+
+function openBrandEdit(id) {
+  editingBrandId = id;
+  const b = id ? settings.brands.find(x => x.id === id) : null;
+
+  document.getElementById('brandEditTitle').textContent = b ? `✏️ Edit Brand — ${b.name}` : '➕ Tambah Brand Baru';
+  document.getElementById('be-name').value = b?.name || '';
+  document.getElementById('be-color').value = b?.color || '#0057FF';
+  document.getElementById('be-kesan').value = b?.kesan || '';
+  document.getElementById('be-target').value = b?.target_market || '';
+  document.getElementById('be-mood').value = b?.mood_estetika || '';
+  document.getElementById('be-catatan').value = b?.catatan_ai || '';
+  document.getElementById('brandDeleteBtn').style.display = b ? 'flex' : 'none';
+
+  // Render gaya options with active states
+  renderGayaOptions(b?.gaya_foto || []);
+
+  openModal('brandEditModal');
+}
+
+// ── Gaya Foto dynamic ──
+const DEFAULT_GAYA = [
+  { key:'natural',    label:'🌿 Natural' },
+  { key:'popmart',    label:'🎭 Popmart / Art Toy' },
+  { key:'luxury',     label:'💎 Luxury / Premium' },
+  { key:'minimalis',  label:'◻️ Minimalis' },
+  { key:'playful',    label:'🎨 Playful / Colorful' },
+  { key:'dark',       label:'🖤 Dark / Moody' },
+  { key:'editorial',  label:'📸 Editorial' },
+  { key:'kawaii',     label:'🌸 Kawaii / Cute' },
+];
+
+// Master list of all gaya — persisted in settings
+function getGayaMaster() {
+  return settings.gayaMaster || DEFAULT_GAYA.map(g => ({...g}));
+}
+
+function renderGayaOptions(activeKeys = []) {
+  const container = document.getElementById('gayaOptions');
+  container.innerHTML = '';
+  const master = getGayaMaster();
+  master.forEach((g, i) => {
+    const el = document.createElement('div');
+    el.className = 'gaya-opt' + (activeKeys.includes(g.key) ? ' active' : '');
+    el.dataset.key = g.key;
+    el.innerHTML = `
+      <span class="gaya-opt-label" onclick="toggleGayaEl(this.parentElement)">${g.label}</span>
+      <button class="gaya-opt-del" onclick="deleteGaya('${g.key}')" title="Hapus gaya ini">✕</button>
+    `;
+    container.appendChild(el);
+  });
+}
+
+function toggleGayaEl(el) { el.classList.toggle('active'); }
+
+function deleteGaya(key) {
+  if (!confirm(`Hapus gaya "${key}" dari semua brand?`)) return;
+  settings.gayaMaster = getGayaMaster().filter(g => g.key !== key);
+  // Remove from active brand too
+  const active = getActiveGayaKeys();
+  renderGayaOptions(active.filter(k => k !== key));
+  toast('🗑️ Gaya dihapus', 'info');
+}
+
+function addGayaCustom() {
+  const inp = document.getElementById('gayaNewInput');
+  const label = inp.value.trim();
+  if (!label) { toast('Tulis nama gaya dulu!', 'error'); return; }
+  const key = label.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30);
+  const master = getGayaMaster();
+  if (master.find(g => g.key === key || g.label.toLowerCase() === label.toLowerCase())) {
+    toast('Gaya ini sudah ada!', 'error'); return;
+  }
+  master.push({ key, label });
+  settings.gayaMaster = master;
+  const active = getActiveGayaKeys();
+  active.push(key); // auto-activate newly added
+  renderGayaOptions(active);
+  inp.value = '';
+  toast(`✅ Gaya "${label}" ditambahkan & diaktifkan`, 'success');
+}
+
+function getActiveGayaKeys() {
+  return Array.from(document.querySelectorAll('.gaya-opt.active')).map(el => el.dataset.key);
+}
+
+function saveBrandEdit() {
+  const name = document.getElementById('be-name').value.trim();
+  if (!name) { toast('Nama brand wajib diisi!', 'error'); return; }
+
+  const selectedGaya = getActiveGayaKeys();
+
+  const data = {
+    id: editingBrandId || ('brand_' + Date.now()),
+    name,
+    color: document.getElementById('be-color').value,
+    kesan: document.getElementById('be-kesan').value.trim(),
+    gaya_foto: selectedGaya,
+    target_market: document.getElementById('be-target').value.trim(),
+    mood_estetika: document.getElementById('be-mood').value.trim(),
+    catatan_ai: document.getElementById('be-catatan').value.trim()
+  };
+
+  if (editingBrandId) {
+    const idx = settings.brands.findIndex(b => b.id === editingBrandId);
+    if (idx >= 0) settings.brands[idx] = data;
+  } else {
+    settings.brands.push(data);
+    selectedBrand = data.id;
+  }
+
+  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
+  closeBrandEdit();
+  renderBrands();
+  toast(`✅ Brand "${name}" tersimpan!`, 'success');
+}
+
+function deleteBrandFromEdit() {
+  if (!editingBrandId) return;
+  const b = settings.brands.find(x => x.id === editingBrandId);
+  if (!confirm(`Hapus brand "${b?.name}"?`)) return;
+  settings.brands = settings.brands.filter(x => x.id !== editingBrandId);
+  if (selectedBrand === editingBrandId) selectedBrand = settings.brands[0]?.id || null;
+  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
+  closeBrandEdit();
+  renderBrands();
+  toast('🗑️ Brand dihapus', 'info');
+}
+
+function closeBrandEdit() { closeModal('brandEditModal'); }
+
+// ══════════════════════════════════════════
+//  UPLOAD
+// ══════════════════════════════════════════
+function triggerUpload() {
+  if (event.target.closest('.photo-remove') || event.target.closest('.photo-add-more')) return;
+  document.getElementById('fileInput').click();
+}
+
+function handleFiles(files) {
+  Array.from(files).forEach(f => {
+    if (!uploadedFiles.find(u => u.name === f.name && u.size === f.size)) {
+      uploadedFiles.push(f);
+    }
+  });
+  renderPhotoGrid();
+  document.getElementById('fileInput').value = '';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  const zone = document.getElementById('uploadZone');
+  if (uploadedFiles.length === 0) {
+    zone.style.display = 'flex'; grid.style.display = 'none'; return;
+  }
+  zone.style.display = 'none'; grid.style.display = 'grid';
+  grid.innerHTML = '';
+  uploadedFiles.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'photo-item';
+    const url = URL.createObjectURL(f);
+    item.innerHTML = `
+      <img src="${url}">
+      <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
+    `;
+    grid.appendChild(item);
+  });
+  const addMore = document.createElement('div');
+  addMore.className = 'photo-add-more';
+  addMore.innerHTML = `<span style="font-size:1.5rem">+</span><span>Tambah</span>`;
+  addMore.onclick = () => document.getElementById('fileInput').click();
+  grid.appendChild(addMore);
+}
+
+function removePhoto(i) {
+  uploadedFiles.splice(i, 1);
+  renderPhotoGrid();
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  handleFiles(e.dataTransfer.files);
+});
+
+// ══════════════════════════════════════════
+//  VARIAN COUNTER
+// ══════════════════════════════════════════
+function changeVarian(d) {
+  varianCount = Math.max(1, Math.min(20, varianCount + d));
+  document.getElementById('varianDisplay').textContent = varianCount;
+}
+
+// ══════════════════════════════════════════
+//  PREVIEW
+// ══════════════════════════════════════════
+async function doPreview() {
+  if (uploadedFiles.length === 0) { toast('Upload minimal 1 foto dulu ya!', 'error'); return; }
+  if (!document.getElementById('namaProduk').value.trim()) { toast('Isi nama produk dulu!', 'error'); return; }
+  if (!settings.keys.maia) { toast('MaiaRouter API Key belum diisi. Cek Settings!', 'error'); openSettings(); return; }
+
+  showLoading('MENGANALISA FOTO', 'AI Vision sedang membaca produk...', 0);
+  document.getElementById('analysisText').textContent = 'Menganalisa...';
+
+  try {
+    const base64Images = await Promise.all(uploadedFiles.map(toBase64));
+    const brand = settings.brands.find(b => b.id === selectedBrand);
+    const nama = document.getElementById('namaProduk').value;
+    const posisi = document.getElementById('posisiPasang').value;
+    const desc = document.getElementById('deskripsiTambahan').value;
+
+    const imageContents = base64Images.slice(0,3).map((b64, i) => ({
+      type: 'image_url',
+      image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
+    }));
+
+    const prompt = `Kamu adalah AI analis produk untuk toko otomotif Indonesia bernama ${brand?.name || 'Hosela'}.
+
+Analisa foto produk berikut dalam Bahasa Indonesia:
+- Nama produk: ${nama}
+- Posisi pasang: ${posisi || 'tidak disebutkan'}
+- Catatan: ${desc || 'tidak ada'}
+- Brand: ${brand?.name} (kesan: ${brand?.kesan})
+- Jumlah varian: ${varianCount}
+
+Balas HANYA JSON:
+{
+  "ringkasan": "deskripsi singkat 1-2 kalimat",
+  "karakter": "maskulin/feminin/cute/premium/dll",
+  "material": "material dari foto",
+  "mood_scene": "mood foto yang cocok",
+  "estimasi_rp": 5000
+}`;
+
+    const res = await maiaFetch('/chat/completions', {
+      model: settings.keys.modelVision || 'google/gemini-2.0-flash-001',
+      max_tokens: 800,
+      messages: [{ role:'user', content:[...imageContents, { type:'text', text: prompt }] }]
+    });
+
+    hideLoading();
+    if (res.error) throw new Error(res.error.message || JSON.stringify(res.error));
+
+    let analysis;
+    try {
+      const raw = res.choices[0].message.content.replace(/```json|```/g,'').trim();
+      analysis = JSON.parse(raw);
+    } catch(e) {
+      analysis = {
+        ringkasan: res.choices[0].message.content,
+        karakter:'mixed', material:'resin',
+        mood_scene:'natural di dashboard',
+        estimasi_rp: varianCount * 3000 + 500
+      };
+    }
+
+    currentAnalysis = analysis;
+    showPreviewModal(analysis, brand);
+
+  } catch(e) {
+    hideLoading();
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+function showPreviewModal(a, brand) {
+  document.getElementById('analysisText').innerHTML = `
+    <strong>${document.getElementById('namaProduk').value}</strong><br>
+    ${a.ringkasan}<br><br>
+    <span style="color:var(--blue);font-weight:600">Karakter:</span> ${a.karakter} &nbsp;|&nbsp;
+    <span style="color:var(--blue);font-weight:600">Material:</span> ${a.material}<br>
+    <span style="color:var(--blue);font-weight:600">Mood foto:</span> ${a.mood_scene}
+  `;
+
+  const plan = document.getElementById('outputPlan');
+  plan.innerHTML = `
+    <div class="plan-item"><div class="plan-icon">🖼️</div><div><div class="plan-text">9 Foto Utama</div><div class="plan-sub">via MaiaRouter Image</div></div></div>
+    <div class="plan-item"><div class="plan-icon">🎨</div><div><div class="plan-text">${varianCount} Foto Varian</div><div class="plan-sub">via MaiaRouter Image</div></div></div>
+    <div class="plan-item"><div class="plan-icon">📝</div><div><div class="plan-text">SEO Lengkap</div><div class="plan-sub">Judul + deskripsi + keyword</div></div></div>
+    <div class="plan-item"><div class="plan-icon">🏷️</div><div><div class="plan-text">Brand: ${brand?.name}</div><div class="plan-sub">Kesan ${brand?.kesan}</div></div></div>
+  `;
+
+  const rp = a.estimasi_rp || (varianCount * 3200 + 500);
+  document.getElementById('costEstimate').textContent = '~Rp ' + rp.toLocaleString('id');
+  openModal('previewModal');
+}
+
+// ══════════════════════════════════════════
+//  GENERATE
+// ══════════════════════════════════════════
+async function doGenerate() {
+  closeModal('previewModal');
+
+  const nama = document.getElementById('namaProduk').value;
+  const posisi = document.getElementById('posisiPasang').value;
+  const desc = document.getElementById('deskripsiTambahan').value;
+  const brand = settings.brands.find(b => b.id === selectedBrand);
+  const base64Images = await Promise.all(uploadedFiles.map(toBase64));
+
+  document.getElementById('resultArea').style.display = 'block';
+  document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Setup placeholder grid
+  setupResultPlaceholders();
+
+  // ── STEP 1: Generate SEO ──
+  updateLoading('MEMBUAT SEO', 'AI menulis judul + deskripsi + keyword...', 1);
+  showLoading('MEMBUAT SEO', 'AI menulis konten marketplace...', 1);
+
+  let seoData = null;
+  try {
+    seoData = await generateSEO(nama, posisi, desc, brand, base64Images);
+    renderSEO(seoData);
+    setStep(1, 'done');
+  } catch(e) {
+    console.error('SEO error:', e);
+    setStep(1, 'done');
+  }
+
+  // ── STEP 2: Generate 9 Main Photos ──
+  updateLoading('GENERATE FOTO UTAMA', 'AI membuat 9 foto listing...', 2);
+  try {
+    if (settings.keys.maia) {
+      await generateMainPhotos(nama, posisi, desc, brand, base64Images);
+    } else {
+      renderPlaceholderPhotos('main', 9, '(MaiaRouter API key belum diset)');
+    }
+    setStep(2, 'done');
+  } catch(e) {
+    console.error('Main photos error:', e);
+    renderPlaceholderPhotos('main', 9, 'Error: ' + e.message);
+    setStep(2, 'done');
+  }
+
+  // ── STEP 3: Generate Variant Photos ──
+  updateLoading('GENERATE FOTO VARIAN', 'AI membuat foto varian...', 3);
+  try {
+    if (settings.keys.maia) {
+      await generateVariantPhotos(nama, posisi, desc, brand, base64Images);
+    } else {
+      renderPlaceholderPhotos('variant', varianCount, '(MaiaRouter API key belum diset)');
+    }
+    setStep(3, 'done');
+    setStep(4, 'done');
+  } catch(e) {
+    console.error('Variant photos error:', e);
+    renderPlaceholderPhotos('variant', varianCount, 'Error: ' + e.message);
+    setStep(4, 'done');
+  }
+
+  hideLoading();
+  saveToHistory(nama, brand, seoData);
+  toast('✅ Generate selesai! Siap download.', 'success');
+}
+
+// ══════════════════════════════════════════
+//  MAIA ROUTER — UNIFIED API HELPER
+// ══════════════════════════════════════════
+async function maiaFetch(endpoint, body) {
+  const res = await fetch(`https://api.maiarouter.ai/v1${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${settings.keys.maia}`
+    },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function generateSEO(nama, posisi, desc, brand, imgs) {
+  const imageContents = imgs.slice(0,2).map((b64, i) => ({
+    type: 'image_url',
+    image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
+  }));
+
+  const brandProfile = brand ? `
+BRAND PROFILE:
+- Nama Brand: ${brand.name}
+- Gaya Foto: ${(brand.gaya_foto||[]).join(', ') || 'tidak ditentukan'}
+- Target Market: ${brand.target_market || 'umum'}
+- Mood & Estetika: ${brand.mood_estetika || 'natural'}
+- Kesan Warna: ${brand.kesan || 'netral'}
+- Instruksi Khusus: ${brand.catatan_ai || 'tidak ada'}
+` : '';
+
+  const d = await maiaFetch('/chat/completions', {
+    model: settings.keys.modelVision || 'google/gemini-2.0-flash-001',
+    max_tokens: 1200,
+    messages: [{ role:'user', content:[
+      ...imageContents,
+      { type:'text', text:`Kamu adalah copywriter e-commerce Indonesia ahli SEO Shopee & TikTok Shop.
+
+${brandProfile}
+
+Buat konten SEO untuk produk:
+- Nama: ${nama}
+- Posisi: ${posisi||'-'}
+- Catatan: ${desc||'-'}
+- Varian: ${varianCount} pilihan
+
+Balas HANYA JSON:
+{
+  "judul_shopee": "judul 60-80 karakter",
+  "judul_tiktok": "judul 40-60 karakter catchy",
+  "deskripsi": "150-200 kata natural informatif",
+  "keyword_utama": ["kw1","kw2","kw3","kw4","kw5"],
+  "keyword_ekor": ["long tail 1","long tail 2","long tail 3"],
+  "hashtag": ["#tag1","#tag2","#tag3","#tag4","#tag5"]
+}`
+    }]}]
+  });
+  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+  return JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
+}
+
+async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
+  const brandStyle = brand ? `${(brand.gaya_foto||[]).join(' ')} ${brand.mood_estetika||''} ${brand.catatan_ai||''}`.trim() : '';
+  const MAIN_SLOTS = [
+    { label:'Hero Shot',         prompt:`Professional product hero shot of ${nama}, placed at ${posisi||'car dashboard'}, ${brandStyle}, 4K ultra detailed, commercial photography, photorealistic` },
+    { label:'Lifestyle Interior',prompt:`Car interior lifestyle photo, ${nama} installed on dashboard, ${brand?.mood_estetika||'natural'} lighting, ${currentAnalysis?.karakter||'premium'} mood, photorealistic, bokeh` },
+    { label:'Close-up Detail',   prompt:`Extreme close-up macro shot of ${nama}, showing texture and craftsmanship detail, ultra sharp, ${brandStyle}, commercial product photography` },
+    { label:'Full Set View',     prompt:`Complete flat lay of ${nama}, all pieces arranged neatly top-down view, ${brand?.kesan||'clean'} color palette, e-commerce white background` },
+    { label:'Wide Angle',        prompt:`Wide interior shot, ${nama} installed in luxury car, bokeh background trees outside, ${brandStyle}, editorial automotive photography` },
+    { label:'Night Mood',        prompt:`Night ambiance car interior, ${nama} on dashboard, warm glowing dashboard lights, cinematic mood, ${brand?.mood_estetika||'premium'}, dark aesthetic` },
+    { label:'Infografis',        prompt:`Clean product infographic of ${nama}, dimension labels, minimal design, ${brand?.color||'blue'} accent color, white background, professional typography` },
+    { label:'Feature Highlight', prompt:`Marketing photo for ${nama} brand ${brand?.name||'Hosela'}, ${brandStyle}, feature callout overlay, modern graphic design style` },
+    { label:'Social Proof',      prompt:`E-commerce product photo for ${nama}, bestseller badge, 5-star rating graphic, clean modern layout, trust signals, brand ${brand?.name||'Hosela'}` }
+  ];
+
+  for (let i = 0; i < MAIN_SLOTS.length; i++) {
+    const slot = MAIN_SLOTS[i];
+    try {
+      const d = await maiaFetch('/images/generations', {
+        model: settings.keys.modelImage || 'openai/dall-e-3',
+        prompt: slot.prompt,
+        n: 1,
+        size: '1024x1024'
+      });
+      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      updateResultPhoto('main', i, url, slot.label);
+    } catch(e) {
+      updateResultPhoto('main', i, null, slot.label);
+    }
+    document.getElementById('mainPhotoCount').textContent = `${i+1}/9`;
+  }
+}
+
+async function generateVariantPhotos(nama, posisi, desc, brand, imgs) {
+  for (let i = 0; i < varianCount; i++) {
+    try {
+      const d = await maiaFetch('/images/generations', {
+        model: settings.keys.modelImage || 'openai/dall-e-3',
+        prompt: `Realistic product photography: ${nama} variant ${i+1}, installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, subtle depth of field, photorealistic, commercial quality. ${desc||''} ${brand?.catatan_ai||''}`.trim(),
+        n: 1,
+        size: '1024x1024'
+      });
+      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
+      updateResultPhoto('variant', i, url, `Varian ${i+1}`);
+    } catch(e) {
+      updateResultPhoto('variant', i, null, `Varian ${i+1}`);
+    }
+    document.getElementById('variantPhotoCount').textContent = `${i+1}/${varianCount}`;
+  }
+}
+
+function setupResultPlaceholders() {
+  const mainGrid = document.getElementById('mainPhotosGrid');
+  const varGrid = document.getElementById('variantPhotosGrid');
+  mainGrid.innerHTML = '';
+  varGrid.innerHTML = '';
+  document.getElementById('mainPhotoCount').textContent = `0/9`;
+  document.getElementById('variantPhotoCount').textContent = `0/${varianCount}`;
+
+  for(let i=0;i<9;i++){
+    const div = document.createElement('div');
+    div.className = 'generating-placeholder';
+    div.id = `main-photo-${i}`;
+    div.innerHTML = `<div class="generating-spinner"></div><div class="gen-label">Foto ${i+1}</div>`;
+    mainGrid.appendChild(div);
+  }
+  for(let i=0;i<varianCount;i++){
+    const div = document.createElement('div');
+    div.className = 'generating-placeholder';
+    div.id = `variant-photo-${i}`;
+    div.innerHTML = `<div class="generating-spinner"></div><div class="gen-label">Varian ${i+1}</div>`;
+    varGrid.appendChild(div);
+  }
+}
+
+function updateResultPhoto(type, i, url, label) {
+  const el = document.getElementById(`${type}-photo-${i}`);
+  if (!el) return;
+  if (url) {
+    el.className = 'result-photo';
+    el.innerHTML = `<img src="${url}" loading="lazy"><div class="photo-label">${label}</div>`;
+  } else {
+    el.className = 'result-photo';
+    el.innerHTML = `
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blue-pale);gap:6px">
+        <span style="font-size:1.5rem">🖼️</span>
+        <span style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:0 8px">${label}</span>
+      </div>
+    `;
+  }
+}
+
+function renderPlaceholderPhotos(type, count, msg) {
+  for(let i=0;i<count;i++) updateResultPhoto(type, i, null, msg);
+}
+
+function renderSEO(data) {
+  if (!data) return;
+  const box = document.getElementById('seoBox');
+  box.innerHTML = `
+    <div class="seo-field">
+      <div class="seo-label">Judul Shopee</div>
+      <div class="seo-value" id="seo-shopee">${data.judul_shopee||'-'}</div>
+      <button class="seo-copy-btn" onclick="copySEO('seo-shopee', this)">📋 Copy</button>
+    </div>
+    <div class="seo-field">
+      <div class="seo-label">Judul TikTok Shop</div>
+      <div class="seo-value" id="seo-tiktok">${data.judul_tiktok||'-'}</div>
+      <button class="seo-copy-btn" onclick="copySEO('seo-tiktok', this)">📋 Copy</button>
+    </div>
+    <div class="seo-field">
+      <div class="seo-label">Deskripsi Produk</div>
+      <div class="seo-value" id="seo-desc">${(data.deskripsi||'-').replace(/\n/g,'<br>')}</div>
+      <button class="seo-copy-btn" onclick="copySEO('seo-desc', this)">📋 Copy</button>
+    </div>
+    <div class="seo-field">
+      <div class="seo-label">Keyword Utama</div>
+      <div class="seo-value" id="seo-kw">${(data.keyword_utama||[]).join(' • ')}</div>
+      <button class="seo-copy-btn" onclick="copySEO('seo-kw', this)">📋 Copy</button>
+    </div>
+    <div class="seo-field">
+      <div class="seo-label">Hashtag</div>
+      <div class="seo-value" id="seo-ht">${(data.hashtag||[]).join(' ')}</div>
+      <button class="seo-copy-btn" onclick="copySEO('seo-ht', this)">📋 Copy</button>
+    </div>
+  `;
+}
+
+function copySEO(id, btn) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.innerText);
+  btn.textContent = '✅ Copied!';
+  btn.className = 'seo-copy-btn copied';
+  setTimeout(() => { btn.textContent = '📋 Copy'; btn.className = 'seo-copy-btn'; }, 2000);
+}
+
+function copyAllSEO() {
+  const ids = ['seo-shopee','seo-tiktok','seo-desc','seo-kw','seo-ht'];
+  let all = ids.map(id => {
+    const el = document.getElementById(id);
+    return el ? el.innerText : '';
+  }).join('\n\n---\n\n');
+  navigator.clipboard.writeText(all);
+  toast('✅ Semua SEO berhasil dicopy!', 'success');
+}
+
+async function downloadZIP() {
+  toast('⬇️ Menyiapkan download...', 'info');
+  // Collect all generated photos
+  const allImgs = [];
+  document.querySelectorAll('#mainPhotosGrid .result-photo img, #variantPhotosGrid .result-photo img').forEach((img, i) => {
+    allImgs.push({ url: img.src, name: img.closest('.result-photo').querySelector('.photo-label')?.textContent || `foto-${i+1}` });
+  });
+
+  // For now open all images in new tabs (ZIP requires JSZip library)
+  if (allImgs.length === 0) { toast('Belum ada foto yang di-generate', 'error'); return; }
+  toast(`📦 ${allImgs.length} foto siap. Fitur ZIP memerlukan JSZip.`, 'info');
+}
+
+// ══════════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════════
+function saveToHistory(nama, brand, seo) {
+  const item = {
+    id: Date.now(),
+    nama, brand: brand?.id, brandName: brand?.name, brandColor: brand?.color,
+    seo, varian: varianCount,
+    tanggal: new Date().toLocaleDateString('id-ID'),
+    thumb: uploadedFiles[0] ? URL.createObjectURL(uploadedFiles[0]) : null
+  };
+  history.unshift(item);
+  localStorage.setItem('his_hosela', JSON.stringify(history.map(h => ({...h, thumb: null}))));
+}
+
+function renderHistory() {
+  const grid = document.getElementById('historyGrid');
+  if (history.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📦</div><div class="empty-title">Belum ada riwayat</div><div class="empty-sub">Generate produk pertama kamu!</div></div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  history.forEach((h, i) => {
+    const card = document.createElement('div');
+    card.className = 'history-card';
+    card.innerHTML = `
+      <div class="history-thumb">
+        ${h.thumb ? `<img src="${h.thumb}">` : '📦'}
+        <div class="history-brand-badge" style="background:${h.brandColor||'#0057FF'}">${h.brandName||'Hosela'}</div>
+      </div>
+      <div class="history-body">
+        <div class="history-name">${h.nama}</div>
+        <div class="history-meta">${h.tanggal} &nbsp;•&nbsp; ${h.varian} varian</div>
+        <div class="history-actions">
+          <button class="history-btn primary" onclick="viewHistory(${i})">📄 Lihat SEO</button>
+          <button class="history-btn danger" onclick="deleteHistory(${i})">🗑️</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function viewHistory(i) {
+  const h = history[i];
+  if (!h.seo) { toast('SEO tidak tersimpan untuk produk ini', 'error'); return; }
+  document.getElementById('analysisText').innerHTML = `<strong>${h.nama}</strong><br>Brand: ${h.brandName} • ${h.tanggal}`;
+  document.getElementById('outputPlan').innerHTML = '';
+  document.getElementById('costEstimate').textContent = '—';
+  openModal('previewModal');
+}
+
+function deleteHistory(i) {
+  if (!confirm('Hapus riwayat ini?')) return;
+  history.splice(i, 1);
+  localStorage.setItem('his_hosela', JSON.stringify(history));
+  renderHistory();
+  toast('🗑️ Dihapus', 'info');
+}
+
+// ══════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════
+function openSettings() {
+  document.getElementById('key-maia').value = settings.keys.maia || '';
+  const visionSel = document.getElementById('model-vision');
+  const imageSel = document.getElementById('model-image');
+  if (visionSel) visionSel.value = settings.keys.modelVision || 'google/gemini-2.0-flash-001';
+  if (imageSel) imageSel.value = settings.keys.modelImage || 'openai/dall-e-3';
+  openModal('settingsModal');
+}
+
+function saveKey(key, val) { settings.keys[key] = val; }
+
+function saveSettings() {
+  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
+  renderBrands();
+  closeModal('settingsModal');
+  toast('✅ Pengaturan tersimpan!', 'success');
+}
+
+function renderBrandManager() {
+  const list = document.getElementById('brandManagerList');
+  list.innerHTML = '';
+  settings.brands.forEach(b => {
+    const row = document.createElement('div');
+    row.className = 'brand-row';
+    row.dataset.id = b.id;
+    row.innerHTML = `
+      <input type="color" class="brand-color-pick" value="${b.color}">
+      <input type="text" class="brand-name-input" value="${b.name}" placeholder="Nama brand">
+      <input type="text" class="brand-kesan" value="${b.kesan}" placeholder="Kesan warna" style="width:90px;border:none;background:transparent;font-family:'Exo 2',sans-serif;font-size:0.8rem;color:var(--text-muted);outline:none;">
+      <button class="brand-delete" onclick="this.closest('.brand-row').remove()">🗑️</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addBrand() {
+  const list = document.getElementById('brandManagerList');
+  const id = 'brand_' + Date.now();
+  const row = document.createElement('div');
+  row.className = 'brand-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <input type="color" class="brand-color-pick" value="#0057FF">
+    <input type="text" class="brand-name-input" value="" placeholder="Nama brand baru">
+    <input type="text" class="brand-kesan" value="" placeholder="Kesan warna" style="width:90px;border:none;background:transparent;font-family:'Exo 2',sans-serif;font-size:0.8rem;color:var(--text-muted);outline:none;">
+    <button class="brand-delete" onclick="this.closest('.brand-row').remove()">🗑️</button>
+  `;
+  list.appendChild(row);
+}
+
+function toggleKey(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ══════════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══════════════════════════════════════════
+//  LOADING HELPERS
+// ══════════════════════════════════════════
+function showLoading(status, sub, step) {
+  document.getElementById('loadingOverlay').classList.add('open');
+  updateLoading(status, sub, step);
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('open'); }
+function updateLoading(status, sub, step) {
+  document.getElementById('loadingStatus').textContent = status;
+  document.getElementById('loadingSub').textContent = sub;
+  for(let i=0;i<5;i++) {
+    const dot = document.getElementById('step'+i);
+    if(dot) dot.className = 'step-dot' + (i < step ? ' done' : i === step ? ' active' : '');
+  }
+}
+function setStep(i, state) {
+  const dot = document.getElementById('step'+i);
+  if(dot) dot.className = 'step-dot ' + (state === 'done' ? 'done' : 'active');
+}
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function resetForm() {
+  uploadedFiles = [];
+  renderPhotoGrid();
+  document.getElementById('namaProduk').value = '';
+  document.getElementById('posisiPasang').value = '';
+  document.getElementById('deskripsiTambahan').value = '';
+  varianCount = 3;
+  document.getElementById('varianDisplay').textContent = 3;
+  document.getElementById('resultArea').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'flex';
+  document.getElementById('photoGrid').style.display = 'none';
+  toast('Form direset', 'info');
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+initParticles();
+renderBrands();
+selectedBrand = settings.brands[0]?.id || null;
+renderBrands();
+</script>
+</body>
+</html>
