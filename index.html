@@ -1387,54 +1387,94 @@ async function doPreview() {
   showLoading('MENGANALISA FOTO', 'AI Vision sedang membaca produk...', 0);
   document.getElementById('analysisText').textContent = 'Menganalisa...';
 
-  try {
-    const base64Images = await Promise.all(uploadedFiles.map(toBase64));
-    const brand = settings.brands.find(b => b.id === selectedBrand);
-    const nama = document.getElementById('namaProduk').value;
-    const posisi = document.getElementById('posisiPasang').value;
-    const desc = document.getElementById('deskripsiTambahan').value;
+  const brand = settings.brands.find(b => b.id === selectedBrand);
+  const nama = document.getElementById('namaProduk').value;
+  const posisi = document.getElementById('posisiPasang').value;
+  const desc = document.getElementById('deskripsiTambahan').value;
+  const model = settings.keys.modelVision || 'maia/gemini-2.5-flash';
 
-    const imageContents = base64Images.slice(0,3).map((b64, i) => ({
-      type: 'image_url',
-      image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
-    }));
+  const prompt = `Kamu adalah AI analis produk untuk toko otomotif Indonesia bernama ${brand?.name || 'Hosela'}.
 
-    const prompt = `Kamu adalah AI analis produk untuk toko otomotif Indonesia bernama ${brand?.name || 'Hosela'}.
-
-Analisa foto produk berikut dalam Bahasa Indonesia:
+Analisa produk berikut dalam Bahasa Indonesia:
 - Nama produk: ${nama}
-- Posisi pasang: ${posisi || 'tidak disebutkan'}
+- Posisi pasang: ${posisi || 'dashboard mobil'}
 - Catatan: ${desc || 'tidak ada'}
 - Brand: ${brand?.name} (kesan: ${brand?.kesan})
 - Jumlah varian: ${varianCount}
 
-Balas HANYA JSON:
-{
-  "ringkasan": "deskripsi singkat 1-2 kalimat",
-  "karakter": "maskulin/feminin/cute/premium/dll",
-  "material": "material dari foto",
-  "mood_scene": "mood foto yang cocok",
-  "estimasi_rp": 5000
-}`;
+Balas HANYA JSON tanpa teks lain:
+{"ringkasan":"deskripsi singkat 1-2 kalimat","karakter":"maskulin/feminin/cute/premium","material":"resin/plastik/kain/dll","mood_scene":"mood foto yang cocok","estimasi_rp":5000}`;
 
-    const res = await maiaFetch('/chat/completions', {
-      model: settings.keys.modelVision || 'maia/gemini-2.5-flash',
-      max_tokens: 800,
-      messages: [{ role:'user', content:[...imageContents, { type:'text', text: prompt }] }]
-    });
+  try {
+    // Coba dengan gambar dulu
+    const base64Images = await Promise.all(uploadedFiles.slice(0,2).map(toBase64));
+    const imageContents = base64Images.map((b64, i) => ({
+      type: 'image_url',
+      image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
+    }));
+
+    let res, data;
+    try {
+      res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${settings.keys.maia}`
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 500,
+          messages: [{ role:'user', content: [...imageContents, { type:'text', text: prompt }] }]
+        })
+      });
+      data = await res.json();
+      console.log('[Preview] Vision response:', data);
+    } catch(e) {
+      console.warn('[Preview] Vision gagal, coba text-only:', e);
+      data = null;
+    }
+
+    // Kalau vision gagal atau 400, fallback ke text-only
+    if (!data || !res.ok || data.error) {
+      console.log('[Preview] Fallback ke text-only...');
+      res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${settings.keys.maia}`
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 500,
+          messages: [{ role:'user', content: prompt }]
+        })
+      });
+      data = await res.json();
+      console.log('[Preview] Text-only response:', data);
+    }
 
     hideLoading();
-    if (res.error) throw new Error(res.error.message || JSON.stringify(res.error));
+
+    if (!res.ok || data.error) {
+      const errMsg = data?.error?.message || data?.message || JSON.stringify(data);
+      toast('Error API: ' + errMsg, 'error');
+      console.error('[Preview] API Error:', errMsg);
+      return;
+    }
+
+    const raw = data?.choices?.[0]?.message?.content || '';
+    console.log('[Preview] Raw content:', raw);
 
     let analysis;
     try {
-      const raw = res.choices[0].message.content.replace(/```json|```/g,'').trim();
-      analysis = JSON.parse(raw);
+      analysis = JSON.parse(raw.replace(/```json|```/g,'').trim());
     } catch(e) {
+      // Kalau ga bisa parse JSON, bikin manual
       analysis = {
-        ringkasan: res.choices[0].message.content,
-        karakter:'mixed', material:'resin',
-        mood_scene:'natural di dashboard',
+        ringkasan: raw || `${nama} - produk dekorasi mobil`,
+        karakter: 'premium',
+        material: 'resin',
+        mood_scene: 'natural di dashboard mobil',
         estimasi_rp: varianCount * 3000 + 500
       };
     }
@@ -1444,6 +1484,7 @@ Balas HANYA JSON:
 
   } catch(e) {
     hideLoading();
+    console.error('[Preview] Exception:', e);
     toast('Error: ' + e.message, 'error');
   }
 }
