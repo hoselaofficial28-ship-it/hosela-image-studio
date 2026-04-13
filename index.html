@@ -1710,15 +1710,31 @@ async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
   for (let i = 0; i < MAIN_SLOTS.length; i++) {
     const slot = MAIN_SLOTS[i];
     try {
-      const d = await maiaFetch('/images/generations', {
-        model: settings.keys.modelImage || 'maia/dall-e-3',
-        n: 1,
-        size: '1024x1024'
+      const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${settings.keys.maia}`
+        },
+        body: JSON.stringify({
+          model: settings.keys.modelImage || 'maia/dall-e-3',
+          prompt: slot.prompt,
+          n: 1,
+          size: '1024x1024'
+        })
       });
+      const d = await res.json();
+      console.log(`[Main ${i+1}] ${slot.label}:`, d);
       const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      updateResultPhoto('main', i, url, slot.label);
+      if (url) {
+        updateResultPhoto('main', i, url, slot.label);
+      } else {
+        const errMsg = d?.error?.message || d?.message || JSON.stringify(d).slice(0,80);
+        updateResultPhotoError('main', i, slot.label, errMsg);
+      }
     } catch(e) {
-      updateResultPhoto('main', i, null, slot.label);
+      console.error(`[Main ${i+1}] Error:`, e);
+      updateResultPhotoError('main', i, slot.label, e.message);
     }
     document.getElementById('mainPhotoCount').textContent = `${i+1}/9`;
   }
@@ -1727,16 +1743,32 @@ async function generateMainPhotos(nama, posisi, desc, brand, imgs) {
 async function generateVariantPhotos(nama, posisi, desc, brand, imgs) {
   for (let i = 0; i < varianCount; i++) {
     try {
-      const d = await maiaFetch('/images/generations', {
-        model: settings.keys.modelImage || 'maia/dall-e-3',
-        prompt: `Realistic product photography: ${nama} variant ${i+1}, installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, subtle depth of field, photorealistic, commercial quality. ${desc||''} ${brand?.catatan_ai||''}`.trim(),
-        n: 1,
-        size: '1024x1024'
+      const prompt = `Realistic product photography: ${nama} variant ${i+1}, installed at ${posisi||'center car dashboard'}, inside modern car interior, natural lighting, subtle depth of field, photorealistic, commercial quality. ${desc||''} ${brand?.catatan_ai||''}`.trim();
+      const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${settings.keys.maia}`
+        },
+        body: JSON.stringify({
+          model: settings.keys.modelImage || 'maia/dall-e-3',
+          prompt,
+          n: 1,
+          size: '1024x1024'
+        })
       });
+      const d = await res.json();
+      console.log(`[Varian ${i+1}]:`, d);
       const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      updateResultPhoto('variant', i, url, `Varian ${i+1}`);
+      if (url) {
+        updateResultPhoto('variant', i, url, `Varian ${i+1}`);
+      } else {
+        const errMsg = d?.error?.message || d?.message || JSON.stringify(d).slice(0,80);
+        updateResultPhotoError('variant', i, `Varian ${i+1}`, errMsg);
+      }
     } catch(e) {
-      updateResultPhoto('variant', i, null, `Varian ${i+1}`);
+      console.error(`[Varian ${i+1}] Error:`, e);
+      updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
     }
     document.getElementById('variantPhotoCount').textContent = `${i+1}/${varianCount}`;
   }
@@ -1773,14 +1805,21 @@ function updateResultPhoto(type, i, url, label) {
     el.className = 'result-photo';
     el.innerHTML = `<img src="${url}" loading="lazy"><div class="photo-label">${label}</div>`;
   } else {
-    el.className = 'result-photo';
-    el.innerHTML = `
-      <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blue-pale);gap:6px">
-        <span style="font-size:1.5rem">🖼️</span>
-        <span style="font-size:0.7rem;color:var(--text-muted);text-align:center;padding:0 8px">${label}</span>
-      </div>
-    `;
+    updateResultPhotoError(type, i, label, '');
   }
+}
+
+function updateResultPhotoError(type, i, label, errMsg) {
+  const el = document.getElementById(`${type}-photo-${i}`);
+  if (!el) return;
+  el.className = 'result-photo';
+  el.innerHTML = `
+    <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blue-pale);gap:6px;padding:8px">
+      <span style="font-size:1.5rem">⚠️</span>
+      <span style="font-size:0.72rem;color:var(--blue);font-weight:700;text-align:center">${label}</span>
+      ${errMsg ? `<span style="font-size:0.65rem;color:var(--error);text-align:center;line-height:1.3">${errMsg.slice(0,60)}</span>` : ''}
+    </div>
+  `;
 }
 
 function renderPlaceholderPhotos(type, count, msg) {
