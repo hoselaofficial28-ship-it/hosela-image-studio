@@ -1031,19 +1031,23 @@
         <div class="api-field">
           <label>Model Image Generation</label>
           <select id="model-image" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelImage', this.value)">
-            <option value="maia/dall-e-3">DALL-E 3 🎨 (Rekomendasi)</option>
-            <option value="maia/gpt-image-1">GPT Image 1 ✨</option>
-            <option value="maia/flux-1.1-pro">Flux 1.1 Pro 🔥</option>
-            <option value="maia/stable-diffusion-3-5-large">Stable Diffusion 3.5</option>
+            <option value="black-forest-labs/flux-1-schnell">⚡ Flux Schnell — ~Rp 400/13 foto</option>
+            <option value="black-forest-labs/flux-1-1-pro">🔥 Flux 1.1 Pro — ~Rp 2.500/13 foto</option>
+            <option value="stabilityai/stable-diffusion-3-5-large-turbo">💨 SD 3.5 Turbo — ~Rp 600/13 foto</option>
+            <option value="dall-e-3">🎨 DALL-E 3 — ~Rp 12.500/13 foto</option>
+            <option value="dall-e-2">💰 DALL-E 2 — ~Rp 3.000/13 foto</option>
           </select>
         </div>
       </div>
-      <div style="margin-top:12px">
-        <button class="btn btn-ghost" onclick="testAPIKey()" style="width:100%;justify-content:center">
-          🔌 Test Koneksi API
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <button class="btn btn-ghost" onclick="testAPIKey()" style="justify-content:center;font-size:0.82rem">
+          🔌 Test Koneksi
         </button>
-        <div id="testResult" style="margin-top:8px;font-size:0.8rem;display:none"></div>
+        <button class="btn btn-ghost" onclick="testImageGen()" style="justify-content:center;font-size:0.82rem">
+          🖼️ Test Image Gen
+        </button>
       </div>
+      <div id="testResult" style="margin-top:8px;font-size:0.8rem;display:none;padding:10px;background:var(--blue-pale);border-radius:8px;line-height:1.5"></div>
     </div>
 
     <div style="margin-top:20px">
@@ -1066,7 +1070,7 @@ let currentAnalysis = null;
 let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
 let settings = (() => {
   const DEFAULT = {
-    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'maia/dall-e-3' },
+    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'black-forest-labs/flux-1-schnell' },
     brands: [
       { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
       { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
@@ -1616,7 +1620,36 @@ async function maiaFetch(endpoint, body) {
   return data;
 }
 
-async function testAPIKey() {
+async function testImageGen() {
+  const key = document.getElementById('key-maia')?.value.trim() || settings.keys.maia;
+  if (!key) { toast('Isi API key dulu!', 'error'); return; }
+  const model = document.getElementById('model-image')?.value || settings.keys.modelImage || 'black-forest-labs/flux-1-schnell';
+
+  const result = document.getElementById('testResult');
+  result.style.display = 'block';
+  result.innerHTML = `<span style="color:var(--text-muted)">⏳ Testing image gen model: <strong>${model}</strong>...</span>`;
+
+  try {
+    const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({ model, prompt: 'a small red circle on white background', n: 1, size: '256x256' })
+    });
+    const data = await res.json();
+    console.log('[Test Image Gen] Response:', data);
+    if (!res.ok) throw new Error(data?.error?.message || data?.message || `Status ${res.status}: ${JSON.stringify(data)}`);
+    const url = data.data?.[0]?.url || (data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : null);
+    if (url) {
+      result.innerHTML = `<span style="color:var(--success)">✅ Image gen berhasil!</span><br><img src="${url}" style="width:80px;height:80px;border-radius:8px;margin-top:6px;object-fit:cover">`;
+      toast('✅ Image generation bekerja!', 'success');
+    } else {
+      result.innerHTML = `<span style="color:var(--warn)">⚠️ Response OK tapi tidak ada gambar.<br>Raw: ${JSON.stringify(data).slice(0,150)}</span>`;
+    }
+  } catch(e) {
+    result.innerHTML = `<span style="color:var(--error)">❌ Error: ${e.message}</span>`;
+    toast('❌ Image gen gagal — coba model lain', 'error');
+  }
+}
   const key = document.getElementById('key-maia').value.trim();
   if (!key) { toast('Isi API key dulu!', 'error'); return; }
 
@@ -2020,7 +2053,7 @@ function openSettings() {
   const visionSel = document.getElementById('model-vision');
   const imageSel  = document.getElementById('model-image');
   if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
-  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'maia/dall-e-3';
+  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'black-forest-labs/flux-1-schnell';
   openModal('settingsModal');
 }
 
