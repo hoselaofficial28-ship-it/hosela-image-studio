@@ -1,2611 +1,323 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hosela Image Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --blue: #0057FF;
-    --blue-mid: #0099FF;
-    --blue-light: #C8E6FF;
-    --blue-pale: #EAF5FF;
-    --white: #FFFFFF;
-    --dark: #001640;
-    --dark-mid: #002366;
-    --cyan: #00D4FF;
-    --text: #1A2E4A;
-    --text-muted: #6B8CAE;
-    --border: #B8D8F0;
-    --success: #00C896;
-    --warn: #FF8C00;
-    --error: #FF3D5A;
-    --shadow: 0 4px 24px rgba(0,87,255,0.12);
-    --shadow-lg: 0 8px 48px rgba(0,87,255,0.2);
-    --glow: 0 0 20px rgba(0,212,255,0.4);
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  body {
-    font-family: 'Exo 2', sans-serif;
-    background: #F0F7FF;
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── ANIMATED BG ── */
-  .bg-grid {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background-image:
-      linear-gradient(rgba(0,87,255,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,87,255,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    animation: gridMove 20s linear infinite;
-  }
-  @keyframes gridMove { to { background-position: 40px 40px; } }
-
-  .particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-  .particle {
-    position: absolute; border-radius: 50%;
-    background: var(--cyan); opacity: 0;
-    animation: float linear infinite;
-  }
-  @keyframes float {
-    0%   { transform: translateY(100vh) scale(0); opacity: 0; }
-    10%  { opacity: 0.6; }
-    90%  { opacity: 0.3; }
-    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
-  }
-
-  /* ── HEADER ── */
-  header {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow);
-  }
-  .header-inner {
-    max-width: 1200px; margin: 0 auto;
-    padding: 0 24px;
-    height: 64px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .logo {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 900; font-size: 1.1rem;
-    color: var(--blue);
-    display: flex; align-items: center; gap: 10px;
-    letter-spacing: 0.05em;
-  }
-  .logo-icon {
-    width: 36px; height: 36px;
-    background: linear-gradient(135deg, var(--blue), var(--cyan));
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    box-shadow: var(--glow);
-    animation: pulse 3s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { box-shadow: 0 0 10px rgba(0,212,255,0.4); }
-    50%      { box-shadow: 0 0 25px rgba(0,212,255,0.8); }
-  }
-  .header-nav { display: flex; gap: 4px; }
-  .nav-btn {
-    padding: 8px 16px; border-radius: 8px;
-    border: none; cursor: pointer;
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.85rem; font-weight: 600;
-    transition: all 0.2s;
-    color: var(--text-muted); background: transparent;
-  }
-  .nav-btn.active, .nav-btn:hover {
-    background: var(--blue-pale); color: var(--blue);
-  }
-  .nav-btn.active { color: var(--blue); }
-  .settings-btn {
-    width: 36px; height: 36px; border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--white);
-    cursor: pointer; font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-  }
-  .settings-btn:hover { border-color: var(--blue); color: var(--blue); }
-
-  /* ── MAIN ── */
-  main {
-    position: relative; z-index: 1;
-    max-width: 1200px; margin: 0 auto;
-    padding: 32px 24px 80px;
-  }
-
-  .page { display: none; animation: fadeIn 0.3s ease; }
-  .page.active { display: block; }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
-
-  /* ── HERO SCAN LINE ── */
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(90deg, var(--blue), var(--cyan));
-    color: white; padding: 6px 16px; border-radius: 100px;
-    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; margin-bottom: 24px;
-    box-shadow: var(--glow);
-  }
-  .hero-badge::before {
-    content: ''; width: 6px; height: 6px;
-    background: white; border-radius: 50%;
-    animation: blink 1s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
-  .page-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.6rem; font-weight: 700;
-    color: var(--dark); margin-bottom: 8px;
-    letter-spacing: -0.01em;
-  }
-  .page-sub {
-    color: var(--text-muted); font-size: 0.9rem;
-    margin-bottom: 32px;
-  }
-
-  /* ── BRAND SELECTOR ── */
-  .section-card {
-    background: var(--white); border-radius: 16px;
-    border: 1px solid var(--border);
-    padding: 24px; margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    transition: box-shadow 0.2s;
-  }
-  .section-card:hover { box-shadow: var(--shadow-lg); }
-  .section-label {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.7rem; font-weight: 700;
-    letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--blue); margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .section-label::after {
-    content: ''; flex: 1; height: 1px;
-    background: linear-gradient(90deg, var(--border), transparent);
-  }
-
-  /* ── BRAND CHIPS ── */
-  .brand-list { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .brand-chip {
-    padding: 0; border-radius: 10px;
-    border: 2px solid var(--border);
-    background: var(--white); cursor: pointer;
-    font-family: 'Exo 2', sans-serif;
-    transition: all 0.2s; color: var(--text-muted);
-    display: flex; align-items: stretch;
-    position: relative; overflow: hidden;
-  }
-  .brand-chip-main {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; font-weight: 600; font-size: 0.85rem;
-  }
-  .brand-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .brand-chip-edit {
-    border-left: 1px solid var(--border);
-    padding: 0 10px; font-size: 13px; display: flex;
-    align-items: center; background: transparent;
-    cursor: pointer; color: var(--text-muted);
-    transition: all 0.2s; border-radius: 0;
-    border-top: none; border-right: none; border-bottom: none;
-  }
-  .brand-chip-edit:hover { background: var(--blue-pale); color: var(--blue); }
-  .brand-chip.selected {
-    border-color: var(--blue); color: var(--blue);
-    background: var(--blue-pale);
-  }
-  .brand-chip.selected .brand-chip-edit { border-left-color: rgba(0,87,255,0.2); }
-  .brand-chip:hover { border-color: var(--blue-mid); }
-
-  .add-brand-chip {
-    padding: 8px 14px; border-radius: 10px;
-    border: 2px dashed var(--border);
-    background: transparent; cursor: pointer;
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.85rem; color: var(--text-muted);
-    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
-    font-weight: 600;
-  }
-  .add-brand-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
-
-  /* ── BRAND PROFILE PANEL ── */
-  .brand-profile-panel {
-    margin-top: 16px; padding: 16px;
-    background: linear-gradient(135deg, var(--blue-pale), #DCF0FF);
-    border-radius: 12px; border: 1px solid var(--border);
-    border-left: 4px solid var(--blue);
-    animation: fadeIn 0.25s ease;
-    display: none;
-  }
-  .brand-profile-panel.open { display: block; }
-  .brand-profile-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .brand-profile-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.72rem; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .brand-profile-dot { width: 8px; height: 8px; border-radius: 50%; }
-  .brand-profile-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .brand-tag {
-    padding: 3px 10px; border-radius: 100px;
-    background: white; border: 1px solid var(--border);
-    font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
-  }
-  .brand-tag.highlight { background: var(--blue); color: white; border-color: var(--blue); }
-
-  /* ── BRAND EDIT MODAL ── */
-  .brand-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media(max-width:540px){ .brand-edit-grid{ grid-template-columns:1fr; } }
-  .be-field { display: flex; flex-direction: column; gap: 5px; }
-  .be-field.full { grid-column: 1/-1; }
-  .be-label {
-    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
-    letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .be-input, .be-textarea, .be-select {
-    padding: 10px 12px; border-radius: 8px;
-    border: 1.5px solid var(--border);
-    font-family: 'Exo 2', sans-serif; font-size: 0.88rem; color: var(--text);
-    outline: none; transition: all 0.2s; background: white;
-    resize: vertical;
-  }
-  .be-input:focus, .be-textarea:focus, .be-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,87,255,0.08); }
-  .be-color-row { display: flex; align-items: center; gap: 10px; }
-  .be-color-pick { width: 40px; height: 40px; border-radius: 8px; border: 1.5px solid var(--border); cursor: pointer; padding: 2px; flex-shrink:0; }
-  .gaya-options { display: flex; gap: 8px; flex-wrap: wrap; }
-  .gaya-opt {
-    padding: 6px 10px 6px 14px; border-radius: 8px;
-    border: 1.5px solid var(--border); background: white;
-    font-family: 'Exo 2', sans-serif; font-size: 0.8rem; font-weight: 600;
-    color: var(--text-muted); cursor: pointer; transition: all 0.2s;
-    display: flex; align-items: center; gap: 6px;
-    animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .gaya-opt.active { border-color: var(--blue); background: var(--blue-pale); color: var(--blue); }
-  .gaya-opt:hover { border-color: var(--blue-mid); }
-  .gaya-opt-label { flex: 1; }
-  .gaya-opt-del {
-    width: 16px; height: 16px; border-radius: 50%;
-    background: transparent; border: none; cursor: pointer;
-    font-size: 11px; color: var(--text-muted); padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    line-height: 1; transition: all 0.15s; flex-shrink: 0;
-  }
-  .gaya-opt-del:hover { background: var(--error); color: white; }
-  .gaya-opt.active .gaya-opt-del { color: var(--blue); }
-  .gaya-opt.active .gaya-opt-del:hover { background: var(--error); color: white; }
-
-  /* ── UPLOAD GRID ── */
-  .upload-zone {
-    min-height: 200px;
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    background: var(--blue-pale);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    cursor: pointer; transition: all 0.3s;
-    padding: 32px; position: relative; overflow: hidden;
-  }
-  .upload-zone.drag-over {
-    border-color: var(--blue); background: #D6EEFF;
-    box-shadow: var(--glow);
-  }
-  .upload-zone .scan-line {
-    position: absolute; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    top: -2px; animation: scan 2.5s ease-in-out infinite;
-    opacity: 0;
-  }
-  .upload-zone:hover .scan-line { opacity: 1; }
-  @keyframes scan { 0%{ top:-2px } 100%{ top:100% } }
-
-  .upload-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
-  .upload-text { font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
-  .upload-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; opacity: 0.7; }
-
-  .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px; margin-top: 16px;
-  }
-  .photo-item {
-    aspect-ratio: 1; border-radius: 10px;
-    overflow: hidden; position: relative;
-    border: 2px solid var(--border);
-    background: var(--blue-pale);
-    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  @keyframes popIn { from{transform:scale(0.6);opacity:0} to{transform:scale(1);opacity:1} }
-  .photo-item img { width:100%; height:100%; object-fit:cover; }
-  .photo-remove {
-    position: absolute; top: 4px; right: 4px;
-    width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(255,61,90,0.9); color: white;
-    border: none; cursor: pointer; font-size: 12px;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.2s;
-  }
-  .photo-item:hover .photo-remove { opacity: 1; }
-  .photo-add-more {
-    aspect-ratio: 1; border-radius: 10px;
-    border: 2px dashed var(--border);
-    background: var(--blue-pale);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    cursor: pointer; font-size: 1.5rem;
-    color: var(--text-muted); transition: all 0.2s;
-    font-weight: 300;
-  }
-  .photo-add-more:hover { border-color: var(--blue); color: var(--blue); background: #DCF0FF; }
-  .photo-add-more span { font-size: 0.65rem; font-weight: 600; margin-top: 4px; }
-
-  /* ── FORM ── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media(max-width:600px){ .form-grid{ grid-template-columns:1fr; } }
-
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field.full { grid-column: 1 / -1; }
-  .field label {
-    font-size: 0.8rem; font-weight: 700;
-    color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .field input, .field textarea, .field select {
-    padding: 12px 14px; border-radius: 10px;
-    border: 1.5px solid var(--border);
-    background: var(--white);
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.9rem; color: var(--text);
-    transition: all 0.2s; outline: none;
-    resize: vertical;
-  }
-  .field input:focus, .field textarea:focus {
-    border-color: var(--blue);
-    box-shadow: 0 0 0 3px rgba(0,87,255,0.1);
-  }
-  .field .optional-tag {
-    font-size: 0.7rem; color: var(--text-muted);
-    font-weight: 400; margin-left: 6px;
-    text-transform: none; letter-spacing: 0;
-  }
-  .field .hint {
-    font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;
-  }
-
-  .varian-counter {
-    display: flex; align-items: center; gap: 12px;
-  }
-  .counter-btn {
-    width: 36px; height: 36px; border-radius: 8px;
-    border: 1.5px solid var(--border);
-    background: var(--white); cursor: pointer;
-    font-size: 1.1rem; font-weight: 700;
-    color: var(--blue); transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .counter-btn:hover { background: var(--blue-pale); border-color: var(--blue); }
-  .counter-display {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.4rem; font-weight: 700;
-    color: var(--dark); min-width: 40px; text-align: center;
-  }
-  .counter-label { font-size: 0.8rem; color: var(--text-muted); }
-
-  /* ── PREVIEW BTN ── */
-  .action-bar {
-    display: flex; gap: 12px; margin-top: 24px;
-    justify-content: flex-end;
-  }
-  .btn {
-    padding: 12px 28px; border-radius: 10px;
-    border: none; cursor: pointer;
-    font-family: 'Exo 2', sans-serif;
-    font-weight: 700; font-size: 0.9rem;
-    transition: all 0.25s; letter-spacing: 0.03em;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .btn-ghost {
-    background: transparent; border: 1.5px solid var(--border);
-    color: var(--text-muted);
-  }
-  .btn-ghost:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--blue), var(--blue-mid));
-    color: white; box-shadow: 0 4px 16px rgba(0,87,255,0.35);
-  }
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,87,255,0.45);
-  }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-cyan {
-    background: linear-gradient(135deg, var(--cyan), var(--blue-mid));
-    color: white; box-shadow: 0 4px 16px rgba(0,212,255,0.35);
-  }
-  .btn-cyan:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,212,255,0.45); }
-
-  /* ── PREVIEW MODAL ── */
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(0,22,64,0.7); backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: var(--white); border-radius: 20px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
-    max-width: 560px; width: 100%;
-    padding: 32px;
-    transform: scale(0.92);
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    max-height: 90vh; overflow-y: auto;
-  }
-  .modal-overlay.open .modal { transform: scale(1); }
-  .modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .modal-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1rem; font-weight: 700; color: var(--dark);
-  }
-  .modal-close {
-    width: 32px; height: 32px; border-radius: 8px;
-    border: none; background: var(--blue-pale);
-    cursor: pointer; font-size: 16px; color: var(--text-muted);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .modal-close:hover { background: #FFE0E5; color: var(--error); }
-
-  .analysis-box {
-    background: linear-gradient(135deg, var(--blue-pale), #DCF5FF);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 16px; margin-bottom: 16px;
-    border-left: 4px solid var(--blue);
-  }
-  .analysis-label {
-    font-size: 0.7rem; font-weight: 700;
-    color: var(--blue); letter-spacing: 0.1em;
-    text-transform: uppercase; margin-bottom: 8px;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .analysis-text { font-size: 0.9rem; color: var(--text); line-height: 1.6; }
-
-  .output-plan { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-  .plan-item {
-    background: var(--blue-pale); border-radius: 10px; padding: 12px 14px;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .plan-icon { font-size: 1.2rem; }
-  .plan-text { font-size: 0.82rem; font-weight: 600; color: var(--dark); }
-  .plan-sub { font-size: 0.72rem; color: var(--text-muted); }
-
-  .cost-row {
-    background: linear-gradient(90deg, var(--dark), var(--dark-mid));
-    border-radius: 10px; padding: 14px 16px;
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .cost-label { font-size: 0.8rem; color: rgba(255,255,255,0.6); font-weight: 500; }
-  .cost-value {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.1rem; font-weight: 700; color: var(--cyan);
-  }
-
-  /* ── LOADING ── */
-  .loading-overlay {
-    position: fixed; inset: 0; z-index: 300;
-    background: rgba(0,22,64,0.85); backdrop-filter: blur(12px);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s;
-  }
-  .loading-overlay.open { opacity: 1; pointer-events: all; }
-  .loading-ring {
-    width: 80px; height: 80px; position: relative; margin-bottom: 24px;
-  }
-  .loading-ring::before, .loading-ring::after {
-    content: ''; position: absolute; border-radius: 50%;
-    border: 3px solid transparent;
-  }
-  .loading-ring::before {
-    inset: 0; border-top-color: var(--blue);
-    animation: spin 1s linear infinite;
-  }
-  .loading-ring::after {
-    inset: 10px; border-top-color: var(--cyan);
-    animation: spin 0.6s linear infinite reverse;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-icon { font-size: 1.8rem; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  .loading-status {
-    font-family: 'Orbitron', sans-serif;
-    color: white; font-size: 0.9rem; letter-spacing: 0.05em;
-    margin-bottom: 8px;
-  }
-  .loading-sub { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
-  .loading-steps { display: flex; gap: 6px; margin-top: 20px; }
-  .step-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(255,255,255,0.2);
-    transition: background 0.3s;
-  }
-  .step-dot.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
-  .step-dot.done { background: var(--success); }
-
-  /* ── HISTORY PAGE ── */
-  .history-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-  .history-card {
-    background: var(--white); border-radius: 16px;
-    border: 1px solid var(--border); overflow: hidden;
-    box-shadow: var(--shadow); transition: all 0.25s;
-    cursor: pointer;
-  }
-  .history-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-  .history-thumb {
-    height: 160px; background: var(--blue-pale);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem; position: relative; overflow: hidden;
-  }
-  .history-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .history-brand-badge {
-    position: absolute; top: 10px; left: 10px;
-    padding: 4px 10px; border-radius: 100px;
-    font-size: 0.7rem; font-weight: 700;
-    color: white; text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .history-body { padding: 16px; }
-  .history-name {
-    font-weight: 700; font-size: 0.95rem;
-    color: var(--dark); margin-bottom: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .history-meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px; }
-  .history-actions { display: flex; gap: 8px; }
-  .history-btn {
-    flex: 1; padding: 8px; border-radius: 8px;
-    border: 1.5px solid var(--border);
-    background: var(--white); cursor: pointer;
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.78rem; font-weight: 600;
-    color: var(--text-muted); transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-  }
-  .history-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-pale); }
-  .history-btn.primary { border-color: var(--blue); color: var(--blue); }
-  .history-btn.danger:hover { border-color: var(--error); color: var(--error); background: #FFF0F3; }
-
-  .empty-state {
-    text-align: center; padding: 80px 20px;
-  }
-  .empty-icon { font-size: 4rem; margin-bottom: 16px; opacity: 0.3; }
-  .empty-title { font-family: 'Orbitron', sans-serif; font-size: 1rem; color: var(--text-muted); margin-bottom: 8px; }
-  .empty-sub { font-size: 0.85rem; color: var(--text-muted); opacity: 0.7; }
-
-  /* ── SETTINGS MODAL ── */
-  .settings-section { margin-bottom: 24px; }
-  .settings-section-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.75rem; font-weight: 700;
-    color: var(--blue); letter-spacing: 0.1em;
-    text-transform: uppercase; margin-bottom: 12px;
-    padding-bottom: 8px; border-bottom: 1px solid var(--border);
-  }
-  .api-field { margin-bottom: 12px; }
-  .api-field label { font-size: 0.8rem; font-weight: 600; color: var(--text); display: block; margin-bottom: 6px; }
-  .api-input-wrap { position: relative; }
-  .api-input-wrap input {
-    width: 100%; padding: 10px 40px 10px 12px;
-    border-radius: 8px; border: 1.5px solid var(--border);
-    font-family: 'Exo 2', sans-serif; font-size: 0.85rem;
-    color: var(--text); outline: none; transition: all 0.2s;
-  }
-  .api-input-wrap input:focus { border-color: var(--blue); }
-  .api-toggle {
-    position: absolute; right: 10px; top: 50%;
-    transform: translateY(-50%);
-    background: none; border: none; cursor: pointer;
-    color: var(--text-muted); font-size: 14px;
-  }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .status-dot.ok { background: var(--success); }
-  .status-dot.err { background: var(--error); }
-  .status-dot.idle { background: var(--text-muted); }
-
-  /* ── BRAND MANAGER ── */
-  .brand-manager-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .brand-row {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--blue-pale);
-  }
-  .brand-color-pick { width: 28px; height: 28px; border-radius: 6px; border: none; cursor: pointer; padding: 0; }
-  .brand-name-input {
-    flex: 1; border: none; background: transparent;
-    font-family: 'Exo 2', sans-serif; font-weight: 600;
-    font-size: 0.88rem; color: var(--dark); outline: none;
-  }
-  .brand-delete {
-    background: none; border: none; cursor: pointer;
-    color: var(--text-muted); font-size: 16px; padding: 4px;
-  }
-  .brand-delete:hover { color: var(--error); }
-
-  /* ── SEO OUTPUT ── */
-  .seo-box {
-    background: var(--dark); border-radius: 12px; padding: 20px;
-    margin-top: 12px;
-  }
-  .seo-field { margin-bottom: 16px; }
-  .seo-label {
-    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--cyan); margin-bottom: 6px;
-  }
-  .seo-value {
-    color: white; font-size: 0.88rem; line-height: 1.6;
-    font-family: 'Exo 2', sans-serif;
-  }
-  .seo-copy-btn {
-    padding: 6px 14px; border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.1); color: white;
-    font-size: 0.75rem; font-weight: 600; cursor: pointer;
-    transition: all 0.2s; margin-top: 8px;
-    font-family: 'Exo 2', sans-serif;
-  }
-  .seo-copy-btn:hover { background: rgba(0,212,255,0.2); border-color: var(--cyan); }
-  .seo-copy-btn.copied { background: rgba(0,200,150,0.2); border-color: var(--success); color: var(--success); }
-
-  /* ── RESULT PHOTOS ── */
-  .result-section { margin-top: 28px; }
-  .result-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.85rem; font-weight: 700;
-    color: var(--dark); margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .result-count {
-    background: var(--blue); color: white;
-    padding: 2px 10px; border-radius: 100px; font-size: 0.72rem;
-  }
-  .result-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
-  }
-  .result-photo {
-    border-radius: 12px; overflow: hidden;
-    border: 2px solid var(--border); aspect-ratio: 1;
-    background: var(--blue-pale); position: relative;
-    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-  }
-  .result-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .result-photo .photo-label {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: linear-gradient(transparent, rgba(0,22,64,0.85));
-    color: white; font-size: 0.7rem; font-weight: 600;
-    padding: 20px 8px 8px; text-align: center;
-  }
-  .generating-placeholder {
-    border-radius: 12px; aspect-ratio: 1;
-    background: linear-gradient(135deg, var(--blue-pale), #D0ECFF);
-    border: 2px solid var(--border);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 8px; animation: shimmer 2s ease-in-out infinite;
-  }
-  @keyframes shimmer {
-    0%,100% { opacity: 0.7; } 50% { opacity: 1; }
-  }
-  .generating-spinner {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 2px solid var(--border); border-top-color: var(--blue);
-    animation: spin 0.8s linear infinite;
-  }
-  .gen-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
-
-  /* Scroll */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--blue-mid); }
-
-  /* Toast */
-  .toast {
-    position: fixed; bottom: 24px; right: 24px; z-index: 500;
-    padding: 12px 20px; border-radius: 10px;
-    background: var(--dark); color: white;
-    font-size: 0.85rem; font-weight: 600;
-    box-shadow: var(--shadow-lg);
-    transform: translateY(80px); opacity: 0;
-    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-left: 4px solid var(--success); }
-  .toast.error { border-left: 4px solid var(--error); }
-  .toast.info { border-left: 4px solid var(--cyan); }
-</style>
-</head>
-<body>
-
-<div class="bg-grid"></div>
-<div class="particles" id="particles"></div>
-
-<!-- HEADER -->
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <div class="logo-icon">🤖</div>
-      HOSELA IMAGE STUDIO
-    </div>
-    <nav class="header-nav">
-      <button class="nav-btn active" onclick="showPage('generate')">⚡ Generate</button>
-      <button class="nav-btn" onclick="showPage('test')">🧪 Test Foto</button>
-      <button class="nav-btn" onclick="showPage('history')">📦 Riwayat</button>
-    </nav>
-    <button class="settings-btn" onclick="openSettings()">⚙️</button>
-  </div>
-</header>
-
-<main>
-  <!-- ── PAGE: GENERATE ── -->
-  <div class="page active" id="page-generate">
-    <div class="hero-badge">AI Image Studio v1.0</div>
-    <h1 class="page-title">Generate Foto Produk</h1>
-    <p class="page-sub">Upload foto mentah → AI buat 9 foto listing + foto varian + SEO otomatis</p>
-
-    <!-- BRAND SELECTOR -->
-    <div class="section-card">
-      <div class="section-label">🏷️ Pilih Brand</div>
-      <div class="brand-list" id="brandList">
-        <!-- rendered by JS -->
-      </div>
-      <!-- BRAND PROFILE PANEL -->
-      <div class="brand-profile-panel" id="brandProfilePanel"></div>
-    </div>
-
-    <!-- UPLOAD ZONE -->
-    <div class="section-card">
-      <div class="section-label">📸 Upload Foto Semua Varian</div>
-      <div class="upload-zone" id="uploadZone" onclick="triggerUpload()">
-        <div class="scan-line"></div>
-        <div class="upload-icon">📁</div>
-        <div class="upload-text">Klik atau drag foto ke sini</div>
-        <div class="upload-sub">Upload semua varian warna sekaligus — tidak ada batas</div>
-      </div>
-      <div class="photo-grid" id="photoGrid" style="display:none"></div>
-      <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFiles(this.files)">
-    </div>
-
-    <!-- FORM -->
-    <div class="section-card">
-      <div class="section-label">📝 Detail Produk</div>
-      <div class="form-grid">
-        <div class="field">
-          <label>Nama Produk</label>
-          <input type="text" id="namaProduk" placeholder="cth: Set Pajangan Dashboard Boneka Couple">
-        </div>
-        <div class="field">
-          <label>Posisi Pasang</label>
-          <input type="text" id="posisiPasang" placeholder="cth: Tengah dashboard mobil">
-        </div>
-        <div class="field full">
-          <label>Deskripsi Tambahan <span class="optional-tag">• opsional</span></label>
-          <textarea id="deskripsiTambahan" rows="2" placeholder="cth: Tonjolkan helikopternya, kesan mewah, cocok untuk pria"></textarea>
-        </div>
-        <div class="field full">
-          <label>Jumlah Varian Warna yang Ingin Dibuat</label>
-          <div style="display:flex; align-items:center; gap:16px; margin-top:4px;">
-            <div class="varian-counter">
-              <button class="counter-btn" onclick="changeVarian(-1)">−</button>
-              <div class="counter-display" id="varianDisplay">3</div>
-              <button class="counter-btn" onclick="changeVarian(1)">+</button>
-            </div>
-            <div class="counter-label">
-              foto varian akan di-generate<br>
-              <span style="font-size:0.72rem;color:var(--text-muted)">masing-masing real di dalam mobil</span>
-            </div>
-          </div>
-          <div class="hint">Sesuaikan dengan jumlah foto yang kamu upload</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ACTION -->
-    <div class="action-bar">
-      <button class="btn btn-ghost" onclick="resetForm()">🔄 Reset</button>
-      <button class="btn btn-primary" id="previewBtn" onclick="doPreview()">
-        👁 Preview & Analisa
-      </button>
-    </div>
-
-    <!-- RESULT AREA (muncul setelah generate) -->
-    <div id="resultArea" style="display:none; margin-top:32px;">
-      <div class="section-card">
-        <div class="section-label">✅ Hasil Generate</div>
-
-        <div class="result-section">
-          <div class="result-title">
-            9 Foto Utama Marketplace
-            <span class="result-count" id="mainPhotoCount">0/9</span>
-          </div>
-          <div class="result-grid" id="mainPhotosGrid"></div>
-        </div>
-
-        <div class="result-section">
-          <div class="result-title">
-            Foto Varian
-            <span class="result-count" id="variantPhotoCount">0/0</span>
-          </div>
-          <div class="result-grid" id="variantPhotosGrid"></div>
-        </div>
-
-        <div class="result-section">
-          <div class="result-title">SEO & Deskripsi</div>
-          <div class="seo-box" id="seoBox"></div>
-        </div>
-
-        <div class="action-bar">
-          <button class="btn btn-ghost" onclick="copyAllSEO()">📋 Copy Semua SEO</button>
-          <button class="btn btn-cyan" onclick="downloadZIP()">⬇️ Download ZIP</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── PAGE: TEST FOTO ── -->
-  <div class="page" id="page-test">
-    <div class="hero-badge">🧪 Test Mode — Hemat Biaya</div>
-    <h1 class="page-title">Test 1 Foto Dulu</h1>
-    <p class="page-sub">Pastikan kualitas & gaya foto cocok sebelum full generate 9+varian.</p>
-
-    <!-- Upload -->
-    <div class="section-card">
-      <div class="section-label">📸 Upload Foto Produk Referensi</div>
-      <div class="upload-zone" id="testUploadZone" onclick="triggerTestUpload()" style="min-height:140px">
-        <div class="scan-line"></div>
-        <div class="upload-icon" id="testUploadIcon">📁</div>
-        <div class="upload-text" id="testUploadText">Klik untuk upload foto produk</div>
-        <div class="upload-sub">Foto ini jadi referensi — produk TIDAK akan berubah bentuk</div>
-      </div>
-      <input type="file" id="testFileInput" accept="image/*" style="display:none" onchange="handleTestFile(this.files[0])">
-    </div>
-
-    <!-- Detail Produk -->
-    <div class="section-card">
-      <div class="section-label">📝 Detail Produk</div>
-      <div class="form-grid">
-        <div class="field">
-          <label>Nama Produk</label>
-          <input type="text" id="testNama" placeholder="cth: Set Pajangan Boneka Katak 4pcs">
-        </div>
-        <div class="field">
-          <label>Posisi Pasang</label>
-          <input type="text" id="testPosisi" placeholder="cth: Tengah dashboard mobil">
-        </div>
-      </div>
-    </div>
-
-    <!-- Photo Style Wizard -->
-    <div class="section-card">
-      <div class="section-label">🎨 Photo Style Wizard</div>
-      <div style="display:grid;gap:18px">
-
-        <div class="field">
-          <label>① Background & Setting</label>
-          <div class="gaya-options" id="wizardBg" style="margin-top:6px">
-            <div class="gaya-opt active" data-group="bg" data-val="clean white studio background, seamless white backdrop" onclick="selectWizard(this,'bg')">⬜ Studio Putih</div>
-            <div class="gaya-opt" data-group="bg" data-val="luxury car interior background, modern dashboard, bokeh" onclick="selectWizard(this,'bg')">🚗 Interior Mobil</div>
-            <div class="gaya-opt" data-group="bg" data-val="outdoor natural setting, bokeh greenery background" onclick="selectWizard(this,'bg')">🌿 Outdoor Natural</div>
-            <div class="gaya-opt" data-group="bg" data-val="dark premium background, deep black, luxury aesthetic" onclick="selectWizard(this,'bg')">🖤 Dark Premium</div>
-            <div class="gaya-opt" data-group="bg" data-val="gradient pastel background, soft aesthetic" onclick="selectWizard(this,'bg')">🌸 Pastel Soft</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>② Mood & Estetika</label>
-          <div class="gaya-options" id="wizardMood" style="margin-top:6px">
-            <div class="gaya-opt active" data-group="mood" data-val="luxury premium feel, high-end product, expensive look" onclick="selectWizard(this,'mood')">💎 Luxury Premium</div>
-            <div class="gaya-opt" data-group="mood" data-val="cute playful kawaii style, fun colorful mood" onclick="selectWizard(this,'mood')">🌸 Cute & Playful</div>
-            <div class="gaya-opt" data-group="mood" data-val="natural fresh lifestyle mood, authentic feel" onclick="selectWizard(this,'mood')">🌿 Natural Fresh</div>
-            <div class="gaya-opt" data-group="mood" data-val="bold modern aesthetic, strong visual impact" onclick="selectWizard(this,'mood')">⚡ Bold Modern</div>
-            <div class="gaya-opt" data-group="mood" data-val="minimalist clean aesthetic, simple elegant" onclick="selectWizard(this,'mood')">◻️ Minimalis</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>③ Lighting</label>
-          <div class="gaya-options" id="wizardLight" style="margin-top:6px">
-            <div class="gaya-opt active" data-group="light" data-val="soft warm lighting, golden hour, gentle shadows" onclick="selectWizard(this,'light')">☀️ Warm Soft</div>
-            <div class="gaya-opt" data-group="light" data-val="bright clean lighting, even illumination, no harsh shadows" onclick="selectWizard(this,'light')">💡 Bright Clean</div>
-            <div class="gaya-opt" data-group="light" data-val="dramatic moody lighting, side light, deep shadows" onclick="selectWizard(this,'light')">🎭 Dramatic</div>
-            <div class="gaya-opt" data-group="light" data-val="natural daylight, window light, soft diffused" onclick="selectWizard(this,'light')">🪟 Natural Daylight</div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- Scene & Model -->
-    <div class="section-card">
-      <div class="section-label">⚙️ Scene & Model AI</div>
-      <div class="form-grid">
-        <div class="field">
-          <label>Scene</label>
-          <select id="testScene" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.88rem;color:var(--text);outline:none;background:white">
-            <option value="hero">🏆 Hero Shot — produk terbaik</option>
-            <option value="lifestyle">🚗 Lifestyle Interior — di dalam mobil</option>
-            <option value="closeup">🔍 Close-up Detail — tekstur & detail</option>
-            <option value="nightmood">🌙 Night Mood — suasana malam</option>
-            <option value="fullset">📦 Full Set View — semua item</option>
-            <option value="wideangle">📷 Wide Angle — pemandangan luas</option>
-            <option value="infografis">📊 Infografis — dimensi & info</option>
-            <option value="feature">✨ Feature Highlight — keunggulan produk</option>
-            <option value="socialproof">⭐ Social Proof — rating & terlaris</option>
-            <option value="varian">🎨 Foto Varian — di dashboard natural</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Model AI</label>
-          <select id="testModelSelect" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.88rem;color:var(--text);outline:none;background:white">
-            <option value="gpt-image-1">✨ GPT Image 1 — terbaik, support referensi</option>
-            <option value="dall-e-3">🎨 DALL-E 3 — bagus, cepat</option>
-            <option value="maia/imagen-3.0-generate-001">🌐 Imagen 3 — Google, detail</option>
-            <option value="nano-banana-2">🍌 Nano Banana 2 — Google, ringan</option>
-            <option value="dall-e-2">💰 DALL-E 2 — paling murah</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <div class="action-bar">
-      <button class="btn btn-primary" onclick="doTestPhoto()" id="testBtn">
-        🧪 Generate 1 Foto Test
-      </button>
-    </div>
-
-    <!-- Result -->
-    <div id="testResultArea" style="display:none;margin-top:24px">
-      <div class="section-card">
-        <div class="section-label">✅ Hasil Test</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
-          <div>
-            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Output AI</div>
-            <div id="testPhotoBox" style="aspect-ratio:1;border-radius:12px;border:2px solid var(--border);background:var(--blue-pale);overflow:hidden;display:flex;align-items:center;justify-content:center"></div>
-          </div>
-          <div>
-            <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Prompt yang Dipakai</div>
-            <div id="testPromptBox" style="background:var(--dark);color:var(--cyan);padding:14px;border-radius:10px;font-size:0.72rem;line-height:1.6;min-height:120px;font-family:monospace;white-space:pre-wrap;overflow-y:auto;max-height:220px"></div>
-            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px" id="testModelUsed"></div>
-          </div>
-        </div>
-        <div class="action-bar" style="margin-top:16px">
-          <button class="btn btn-ghost" onclick="doTestPhoto()">🔄 Generate Ulang (model sama)</button>
-          <button class="btn btn-ghost" onclick="tryNextModel()">⏭️ Coba Model Lain</button>
-          <button class="btn btn-primary" onclick="applyStyleToGenerate()">✅ Cocok! Lanjut Full Generate</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── PAGE: HISTORY ── -->
-  <div class="page" id="page-history">
-    <div class="hero-badge">Riwayat Produk</div>
-    <h1 class="page-title">Produk Tersimpan</h1>
-    <p class="page-sub">Semua produk yang pernah di-generate. Bisa download ulang kapan saja.</p>
-    <div class="history-grid" id="historyGrid"></div>
-  </div>
-</main>
-
-<!-- PREVIEW MODAL -->
-<div class="modal-overlay" id="previewModal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">🔍 Preview Analisa AI</div>
-      <button class="modal-close" onclick="closeModal('previewModal')">✕</button>
-    </div>
-
-    <div class="analysis-box">
-      <div class="analysis-label">🤖 Claude Vision membaca:</div>
-      <div class="analysis-text" id="analysisText">Menganalisa foto...</div>
-    </div>
-
-    <div class="output-plan" id="outputPlan"></div>
-
-    <div class="cost-row">
-      <div>
-        <div class="cost-label">Estimasi biaya generate</div>
-        <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:2px">Gemini gratis • GPT + Claude API</div>
-      </div>
-      <div class="cost-value" id="costEstimate">~Rp 0</div>
-    </div>
-
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal('previewModal')">❌ Batal</button>
-      <button class="btn btn-primary" style="flex:2" onclick="doGenerate()">✅ Generate Sekarang</button>
-    </div>
-  </div>
-</div>
-
-<!-- LOADING OVERLAY -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-ring">
-    <div class="loading-icon">🤖</div>
-  </div>
-  <div class="loading-status" id="loadingStatus">MENGANALISA PRODUK</div>
-  <div class="loading-sub" id="loadingSub">Claude Vision sedang membaca foto...</div>
-  <div class="loading-steps">
-    <div class="step-dot" id="step0"></div>
-    <div class="step-dot" id="step1"></div>
-    <div class="step-dot" id="step2"></div>
-    <div class="step-dot" id="step3"></div>
-    <div class="step-dot" id="step4"></div>
-  </div>
-</div>
-
-<!-- BRAND EDIT MODAL -->
-<div class="modal-overlay" id="brandEditModal">
-  <div class="modal" style="max-width:580px">
-    <div class="modal-header">
-      <div class="modal-title" id="brandEditTitle">✏️ Edit Brand</div>
-      <button class="modal-close" onclick="closeBrandEdit()">✕</button>
-    </div>
-
-    <div class="brand-edit-grid">
-      <div class="be-field">
-        <div class="be-label">Nama Brand</div>
-        <input class="be-input" id="be-name" placeholder="cth: Hosela Official">
-      </div>
-      <div class="be-field">
-        <div class="be-label">Warna Brand</div>
-        <div class="be-color-row">
-          <input type="color" class="be-color-pick" id="be-color" value="#0057FF">
-          <input class="be-input" id="be-kesan" placeholder="Kesan warna cth: merah elegan" style="flex:1">
-        </div>
-      </div>
-
-      <div class="be-field full">
-        <div class="be-label">Gaya Foto Produk</div>
-        <div class="gaya-options" id="gayaOptions"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-          <input class="be-input" id="gayaNewInput" placeholder="Tambah gaya baru cth: Vintage, Cinematic..."
-            style="flex:1;padding:8px 12px"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();addGayaCustom()}">
-          <button class="btn btn-ghost" onclick="addGayaCustom()"
-            style="padding:8px 14px;font-size:0.82rem;white-space:nowrap;flex-shrink:0">
-            ＋ Tambah
-          </button>
-        </div>
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:5px">
-          Klik gaya untuk aktif/nonaktif • Klik ✕ untuk hapus permanen
-        </div>
-      </div>
-
-      <div class="be-field">
-        <div class="be-label">Target Market</div>
-        <input class="be-input" id="be-target" placeholder="cth: Wanita 20-35 tahun, pecinta dekorasi">
-      </div>
-      <div class="be-field">
-        <div class="be-label">Mood & Estetika</div>
-        <input class="be-input" id="be-mood" placeholder="cth: Hangat, pastel soft, ceria">
-      </div>
-
-      <div class="be-field full">
-        <div class="be-label">Catatan Khusus untuk AI <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— bisa diubah kapan saja</span></div>
-        <textarea class="be-textarea" id="be-catatan" rows="3"
-          placeholder="cth: Selalu tampilkan produk dengan background interior mobil mewah. Hindari tampilan terlalu ramai. Gunakan pencahayaan hangat. Kesan premium dan eksklusif."></textarea>
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">💡 Semakin detail, semakin konsisten foto yang dihasilkan AI untuk brand ini</div>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;margin-top:20px;align-items:center">
-      <button class="btn btn-ghost" id="brandDeleteBtn" onclick="deleteBrandFromEdit()" style="color:var(--error);border-color:var(--error)">🗑️ Hapus</button>
-      <div style="flex:1"></div>
-      <button class="btn btn-ghost" onclick="closeBrandEdit()">Batal</button>
-      <button class="btn btn-primary" onclick="saveBrandEdit()">💾 Simpan Brand</button>
-    </div>
-  </div>
-</div>
-
-<!-- SETTINGS MODAL -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal" style="max-width:620px">
-    <div class="modal-header">
-      <div class="modal-title">⚙️ Pengaturan</div>
-      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">🔑 MaiaRouter API Key</div>
-      <div style="background:linear-gradient(135deg,#EAF5FF,#DCF0FF);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.8rem;color:var(--text-muted);line-height:1.5">
-        🇮🇩 <strong style="color:var(--blue)">MaiaRouter</strong> — platform AI buatan Indonesia.<br>
-        1 API key untuk semua fungsi: analisa foto, generate gambar, SEO.<br>
-        Bayar via <strong>QRIS</strong> di <a href="https://maiarouter.ai" target="_blank" style="color:var(--blue)">maiarouter.ai</a>
-      </div>
-      <div class="api-field">
-        <label>
-          <span class="status-dot idle" id="dot-maia"></span>MaiaRouter API Key
-          <span id="key-saved-badge" style="display:none;margin-left:8px;font-size:0.7rem;background:var(--success);color:white;padding:2px 8px;border-radius:100px;font-weight:700">✓ Tersimpan</span>
-          <span id="key-warn-badge"  style="display:none;margin-left:8px;font-size:0.7rem;background:var(--error);color:white;padding:2px 8px;border-radius:100px;font-weight:700">⚠️ Key tidak valid</span>
-        </label>
-        <div class="api-input-wrap">
-          <input type="password" id="key-maia" placeholder="Paste API key di sini..."
-            oninput="saveKey('maia', this.value); showKeySaved(this.value)">
-          <button class="api-toggle" onclick="toggleKey('key-maia', this)">👁</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-        <div class="api-field">
-          <label>Model Vision & Teks</label>
-          <select id="model-vision" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelVision', this.value)">
-            <option value="maia/gemini-2.5-flash">Gemini 2.5 Flash ⚡ (Rekomendasi)</option>
-            <option value="maia/gemini-2.0-flash">Gemini 2.0 Flash</option>
-            <option value="maia/gpt-4o">GPT-4o 👁</option>
-            <option value="maia/claude-sonnet-4-5">Claude Sonnet 💬</option>
-          </select>
-        </div>
-        <div class="api-field">
-          <label>Model Image Generation</label>
-          <select id="model-image" style="padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);font-family:'Exo 2',sans-serif;font-size:0.85rem;color:var(--text);outline:none;background:white" onchange="saveKey('modelImage', this.value)">
-            <option value="dall-e-3">🎨 DALL-E 3 (Rekomendasi)</option>
-            <option value="dall-e-2">💰 DALL-E 2 (Lebih murah)</option>
-            <option value="gpt-image-1">✨ GPT Image 1</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-        <button class="btn btn-ghost" onclick="testAPIKey()" style="justify-content:center;font-size:0.82rem">
-          🔌 Test Koneksi
-        </button>
-        <button class="btn btn-ghost" onclick="testImageGen()" style="justify-content:center;font-size:0.82rem">
-          🖼️ Test Image Gen
-        </button>
-      </div>
-      <div id="testResult" style="margin-top:8px;font-size:0.8rem;display:none;padding:10px;background:var(--blue-pale);border-radius:8px;line-height:1.5"></div>
-    </div>
-
-    <div style="margin-top:20px">
-      <button class="btn btn-primary" onclick="saveSettings()" style="width:100%">💾 Simpan Pengaturan</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-
-<script>
-// ══════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════
-let uploadedFiles = [];
-let varianCount = 3;
-let selectedBrand = null;
-let currentAnalysis = null;
-let history = JSON.parse(localStorage.getItem('his_hosela') || '[]');
-let settings = (() => {
-  const DEFAULT = {
-    keys: { maia:'', modelVision:'maia/gemini-2.5-flash', modelImage:'dall-e-3' },
-    brands: [
-      { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
-      { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
-      { id:'pusat',  name:'Pusat Interior',  color:'#FFB800', kesan:'kuning' },
-      { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
-    ]
-  };
-  try {
-    const saved = JSON.parse(localStorage.getItem('cfg_hosela') || 'null');
-    if (!saved) return DEFAULT;
-    // Migrasi dari format lama (claude/gemini/openai) ke maia
-    if (!saved.keys) saved.keys = {};
-    if (!saved.keys.maia) saved.keys.maia = '';
-    // Hapus key yang tidak valid (bukan format sk-...)
-    if (saved.keys.maia && !saved.keys.maia.startsWith('sk-')) {
-      console.warn('[Settings] API key invalid dihapus:', saved.keys.maia.slice(0,8)+'...');
-      saved.keys.maia = '';
-    }
-    if (!saved.keys.modelVision) saved.keys.modelVision = 'maia/gemini-2.5-flash';
-    if (!saved.keys.modelImage)  saved.keys.modelImage  = 'dall-e-3';
-    if (!saved.brands || !saved.brands.length) saved.brands = DEFAULT.brands;
-    return saved;
-  } catch(e) { return DEFAULT; }
-})();
-
-// ══════════════════════════════════════════
-//  PARTICLES
-// ══════════════════════════════════════════
-function initParticles() {
-  const c = document.getElementById('particles');
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    const s = Math.random() * 4 + 2;
-    p.style.cssText = `
-      width:${s}px; height:${s}px;
-      left:${Math.random()*100}%;
-      animation-duration:${Math.random()*15+10}s;
-      animation-delay:${Math.random()*10}s;
-      opacity:${Math.random()*0.4+0.1};
-    `;
-    c.appendChild(p);
-  }
-}
-
-// ══════════════════════════════════════════
-//  NAVIGATION
-// ══════════════════════════════════════════
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  event.target.classList.add('active');
-  if (name === 'history') renderHistory();
-}
-
-// ══════════════════════════════════════════
-//  BRAND
-// ══════════════════════════════════════════
-function renderBrands() {
-  const list = document.getElementById('brandList');
-  list.innerHTML = '';
-
-  // Auto-restore default brands kalau kosong
-  if (!settings.brands || !settings.brands.length) {
-    settings.brands = [
-      { id:'hosela', name:'Hosela Official', color:'#FF3B30', kesan:'merah' },
-      { id:'mobela', name:'Mobela Official', color:'#0057FF', kesan:'biru' },
-      { id:'pusat',  name:'Pusat Interior',  color:'#FFB800', kesan:'kuning' },
-      { id:'goauto', name:'GoAuto Official', color:'#00C896', kesan:'hijau' }
-    ];
-    localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-  }
-
-  settings.brands.forEach(b => {
-    const chip = document.createElement('div');
-    chip.className = 'brand-chip' + (selectedBrand === b.id ? ' selected' : '');
-
-    const main = document.createElement('div');
-    main.className = 'brand-chip-main';
-    main.innerHTML = `<span class="brand-dot" style="background:${b.color}"></span>${b.name}`;
-    main.onclick = () => { selectedBrand = b.id; renderBrands(); showBrandProfile(b); };
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'brand-chip-edit';
-    editBtn.textContent = '✏️';
-    editBtn.title = 'Edit profil brand';
-    editBtn.onclick = (e) => { e.stopPropagation(); openBrandEdit(b.id); };
-
-    chip.appendChild(main);
-    chip.appendChild(editBtn);
-    list.appendChild(chip);
-  });
-
-  // Add brand button
-  const addBtn = document.createElement('button');
-  addBtn.className = 'add-brand-chip';
-  addBtn.innerHTML = '＋ Tambah Brand';
-  addBtn.onclick = () => openBrandEdit(null);
-  list.appendChild(addBtn);
-
-  if (!selectedBrand && settings.brands.length) {
-    selectedBrand = settings.brands[0].id;
-    renderBrands();
-  } else if (selectedBrand) {
-    const b = settings.brands.find(x => x.id === selectedBrand);
-    if (b) showBrandProfile(b);
-  }
-}
-
-function showBrandProfile(b) {
-  const panel = document.getElementById('brandProfilePanel');
-  if (!b) { panel.classList.remove('open'); return; }
-
-  const gaya = (b.gaya_foto || []).join(', ') || '—';
-  const target = b.target_market || '—';
-  const mood = b.mood_estetika || '—';
-  const catatan = b.catatan_ai || '—';
-
-  panel.innerHTML = `
-    <div class="brand-profile-header">
-      <div class="brand-profile-title">
-        <span class="brand-profile-dot" style="background:${b.color}"></span>
-        Profil Brand — ${b.name}
-      </div>
-      <button class="btn btn-ghost" style="padding:5px 12px;font-size:0.75rem" onclick="openBrandEdit('${b.id}')">✏️ Edit</button>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:0.83rem">
-      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Gaya Foto</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${gaya}</div></div>
-      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Target Market</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${target}</div></div>
-      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Mood & Estetika</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${mood}</div></div>
-      <div><span style="color:var(--text-muted);font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">Kesan Warna</span><div style="margin-top:3px;font-weight:600;color:var(--dark)">${b.kesan||'—'}</div></div>
-    </div>
-    ${catatan !== '—' ? `
-    <div style="margin-top:12px;padding:10px 12px;background:rgba(0,87,255,0.06);border-radius:8px;font-size:0.82rem;color:var(--text);line-height:1.5">
-      <span style="font-weight:700;color:var(--blue);font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em">📌 Instruksi AI</span><br>
-      <span style="margin-top:4px;display:block">${catatan}</span>
-    </div>` : `
-    <div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">💡 Belum ada instruksi AI. <a href="#" onclick="openBrandEdit('${b.id}');return false" style="color:var(--blue)">Tambahkan sekarang</a> untuk hasil foto lebih konsisten.</div>
-    `}
-  `;
-  panel.classList.add('open');
-}
-
-// ── Brand Edit Modal ──
-let editingBrandId = null;
-const GAYA_LIST = ['natural','popmart','luxury','minimalis','playful','dark','editorial','kawaii'];
-
-function openBrandEdit(id) {
-  editingBrandId = id;
-  const b = id ? settings.brands.find(x => x.id === id) : null;
-
-  document.getElementById('brandEditTitle').textContent = b ? `✏️ Edit Brand — ${b.name}` : '➕ Tambah Brand Baru';
-  document.getElementById('be-name').value = b?.name || '';
-  document.getElementById('be-color').value = b?.color || '#0057FF';
-  document.getElementById('be-kesan').value = b?.kesan || '';
-  document.getElementById('be-target').value = b?.target_market || '';
-  document.getElementById('be-mood').value = b?.mood_estetika || '';
-  document.getElementById('be-catatan').value = b?.catatan_ai || '';
-  document.getElementById('brandDeleteBtn').style.display = b ? 'flex' : 'none';
-
-  // Render gaya options with active states
-  renderGayaOptions(b?.gaya_foto || []);
-
-  openModal('brandEditModal');
-}
-
-// ── Gaya Foto dynamic ──
-const DEFAULT_GAYA = [
-  { key:'natural',    label:'🌿 Natural' },
-  { key:'popmart',    label:'🎭 Popmart / Art Toy' },
-  { key:'luxury',     label:'💎 Luxury / Premium' },
-  { key:'minimalis',  label:'◻️ Minimalis' },
-  { key:'playful',    label:'🎨 Playful / Colorful' },
-  { key:'dark',       label:'🖤 Dark / Moody' },
-  { key:'editorial',  label:'📸 Editorial' },
-  { key:'kawaii',     label:'🌸 Kawaii / Cute' },
-];
-
-// Master list of all gaya — persisted in settings
-function getGayaMaster() {
-  return settings.gayaMaster || DEFAULT_GAYA.map(g => ({...g}));
-}
-
-function renderGayaOptions(activeKeys = []) {
-  const container = document.getElementById('gayaOptions');
-  container.innerHTML = '';
-  const master = getGayaMaster();
-  master.forEach((g, i) => {
-    const el = document.createElement('div');
-    el.className = 'gaya-opt' + (activeKeys.includes(g.key) ? ' active' : '');
-    el.dataset.key = g.key;
-    el.innerHTML = `
-      <span class="gaya-opt-label" onclick="toggleGayaEl(this.parentElement)">${g.label}</span>
-      <button class="gaya-opt-del" onclick="deleteGaya('${g.key}')" title="Hapus gaya ini">✕</button>
-    `;
-    container.appendChild(el);
-  });
-}
-
-function toggleGayaEl(el) { el.classList.toggle('active'); }
-
-function deleteGaya(key) {
-  if (!confirm(`Hapus gaya "${key}" dari semua brand?`)) return;
-  settings.gayaMaster = getGayaMaster().filter(g => g.key !== key);
-  // Remove from active brand too
-  const active = getActiveGayaKeys();
-  renderGayaOptions(active.filter(k => k !== key));
-  toast('🗑️ Gaya dihapus', 'info');
-}
-
-function addGayaCustom() {
-  const inp = document.getElementById('gayaNewInput');
-  const label = inp.value.trim();
-  if (!label) { toast('Tulis nama gaya dulu!', 'error'); return; }
-  const key = label.toLowerCase().replace(/[^a-z0-9]/g,'_').slice(0,30);
-  const master = getGayaMaster();
-  if (master.find(g => g.key === key || g.label.toLowerCase() === label.toLowerCase())) {
-    toast('Gaya ini sudah ada!', 'error'); return;
-  }
-  master.push({ key, label });
-  settings.gayaMaster = master;
-  const active = getActiveGayaKeys();
-  active.push(key); // auto-activate newly added
-  renderGayaOptions(active);
-  inp.value = '';
-  toast(`✅ Gaya "${label}" ditambahkan & diaktifkan`, 'success');
-}
-
-function getActiveGayaKeys() {
-  return Array.from(document.querySelectorAll('.gaya-opt.active')).map(el => el.dataset.key);
-}
-
-function saveBrandEdit() {
-  const name = document.getElementById('be-name').value.trim();
-  if (!name) { toast('Nama brand wajib diisi!', 'error'); return; }
-
-  const selectedGaya = getActiveGayaKeys();
-
-  const data = {
-    id: editingBrandId || ('brand_' + Date.now()),
-    name,
-    color: document.getElementById('be-color').value,
-    kesan: document.getElementById('be-kesan').value.trim(),
-    gaya_foto: selectedGaya,
-    target_market: document.getElementById('be-target').value.trim(),
-    mood_estetika: document.getElementById('be-mood').value.trim(),
-    catatan_ai: document.getElementById('be-catatan').value.trim()
-  };
-
-  if (editingBrandId) {
-    const idx = settings.brands.findIndex(b => b.id === editingBrandId);
-    if (idx >= 0) settings.brands[idx] = data;
-  } else {
-    settings.brands.push(data);
-    selectedBrand = data.id;
-  }
-
-  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-  closeBrandEdit();
-  renderBrands();
-  toast(`✅ Brand "${name}" tersimpan!`, 'success');
-}
-
-function deleteBrandFromEdit() {
-  if (!editingBrandId) return;
-  const b = settings.brands.find(x => x.id === editingBrandId);
-  if (!confirm(`Hapus brand "${b?.name}"?`)) return;
-  settings.brands = settings.brands.filter(x => x.id !== editingBrandId);
-  if (selectedBrand === editingBrandId) selectedBrand = settings.brands[0]?.id || null;
-  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-  closeBrandEdit();
-  renderBrands();
-  toast('🗑️ Brand dihapus', 'info');
-}
-
-function closeBrandEdit() { closeModal('brandEditModal'); }
-
-// ══════════════════════════════════════════
-//  UPLOAD
-// ══════════════════════════════════════════
-function triggerUpload() {
-  if (event.target.closest('.photo-remove') || event.target.closest('.photo-add-more')) return;
-  document.getElementById('fileInput').click();
-}
-
-function handleFiles(files) {
-  Array.from(files).forEach(f => {
-    if (!uploadedFiles.find(u => u.name === f.name && u.size === f.size)) {
-      uploadedFiles.push(f);
-    }
-  });
-  renderPhotoGrid();
-  document.getElementById('fileInput').value = '';
-}
-
-function renderPhotoGrid() {
-  const grid = document.getElementById('photoGrid');
-  const zone = document.getElementById('uploadZone');
-  if (uploadedFiles.length === 0) {
-    zone.style.display = 'flex'; grid.style.display = 'none'; return;
-  }
-  zone.style.display = 'none'; grid.style.display = 'grid';
-  grid.innerHTML = '';
-  uploadedFiles.forEach((f, i) => {
-    const item = document.createElement('div');
-    item.className = 'photo-item';
-    const url = URL.createObjectURL(f);
-    item.innerHTML = `
-      <img src="${url}">
-      <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
-    `;
-    grid.appendChild(item);
-  });
-  const addMore = document.createElement('div');
-  addMore.className = 'photo-add-more';
-  addMore.innerHTML = `<span style="font-size:1.5rem">+</span><span>Tambah</span>`;
-  addMore.onclick = () => document.getElementById('fileInput').click();
-  grid.appendChild(addMore);
-}
-
-function removePhoto(i) {
-  uploadedFiles.splice(i, 1);
-  renderPhotoGrid();
-}
-
-const zone = document.getElementById('uploadZone');
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-zone.addEventListener('drop', e => {
-  e.preventDefault(); zone.classList.remove('drag-over');
-  handleFiles(e.dataTransfer.files);
-});
-
-// ══════════════════════════════════════════
-//  VARIAN COUNTER
-// ══════════════════════════════════════════
-function changeVarian(d) {
-  varianCount = Math.max(1, Math.min(20, varianCount + d));
-  document.getElementById('varianDisplay').textContent = varianCount;
-}
-
-// ══════════════════════════════════════════
-//  PREVIEW
-// ══════════════════════════════════════════
-async function doPreview() {
-  if (uploadedFiles.length === 0) { toast('Upload minimal 1 foto dulu ya!', 'error'); return; }
-  if (!document.getElementById('namaProduk').value.trim()) { toast('Isi nama produk dulu!', 'error'); return; }
-  if (!settings.keys.maia) { toast('MaiaRouter API Key belum diisi. Cek Settings!', 'error'); openSettings(); return; }
-
-  showLoading('MENGANALISA FOTO', 'AI Vision sedang membaca produk...', 0);
-  document.getElementById('analysisText').textContent = 'Menganalisa...';
-
-  const brand = settings.brands.find(b => b.id === selectedBrand);
-  const nama = document.getElementById('namaProduk').value;
-  const posisi = document.getElementById('posisiPasang').value;
-  const desc = document.getElementById('deskripsiTambahan').value;
-  const model = settings.keys.modelVision || 'maia/gemini-2.5-flash';
-
-  const prompt = `Kamu adalah AI analis produk untuk toko otomotif Indonesia bernama ${brand?.name || 'Hosela'}.
-
-Analisa produk berikut dalam Bahasa Indonesia:
-- Nama produk: ${nama}
-- Posisi pasang: ${posisi || 'dashboard mobil'}
-- Catatan: ${desc || 'tidak ada'}
-- Brand: ${brand?.name} (kesan: ${brand?.kesan})
-- Jumlah varian: ${varianCount}
-
-Balas HANYA JSON tanpa teks lain:
-{"ringkasan":"deskripsi singkat 1-2 kalimat","karakter":"maskulin/feminin/cute/premium","material":"resin/plastik/kain/dll","mood_scene":"mood foto yang cocok","estimasi_rp":5000}`;
-
-  try {
-    // Coba dengan gambar dulu
-    const base64Images = await Promise.all(uploadedFiles.slice(0,2).map(toBase64));
-    const imageContents = base64Images.map((b64, i) => ({
-      type: 'image_url',
-      image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
-    }));
-
-    let res, data;
-    try {
-      res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.keys.maia}`
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 500,
-          messages: [{ role:'user', content: [...imageContents, { type:'text', text: prompt }] }]
-        })
-      });
-      data = await res.json();
-      console.log('[Preview] Vision response:', data);
-    } catch(e) {
-      console.warn('[Preview] Vision gagal, coba text-only:', e);
-      data = null;
-    }
-
-    // Kalau vision gagal atau 400, fallback ke text-only
-    if (!data || !res.ok || data.error) {
-      console.log('[Preview] Fallback ke text-only...');
-      res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${settings.keys.maia}`
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 500,
-          messages: [{ role:'user', content: prompt }]
-        })
-      });
-      data = await res.json();
-      console.log('[Preview] Text-only response:', data);
-    }
-
-    hideLoading();
-
-    if (!res.ok || data.error) {
-      const errMsg = data?.error?.message || data?.message || JSON.stringify(data);
-      toast('Error API: ' + errMsg, 'error');
-      console.error('[Preview] API Error:', errMsg);
-      return;
-    }
-
-    const raw = data?.choices?.[0]?.message?.content || '';
-    console.log('[Preview] Raw content:', raw);
-
-    let analysis;
-    try {
-      analysis = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    } catch(e) {
-      // Kalau ga bisa parse JSON, bikin manual
-      analysis = {
-        ringkasan: raw || `${nama} - produk dekorasi mobil`,
-        karakter: 'premium',
-        material: 'resin',
-        mood_scene: 'natural di dashboard mobil',
-        estimasi_rp: varianCount * 3000 + 500
-      };
-    }
-
-    currentAnalysis = analysis;
-    showPreviewModal(analysis, brand);
-
-  } catch(e) {
-    hideLoading();
-    console.error('[Preview] Exception:', e);
-    toast('Error: ' + e.message, 'error');
-  }
-}
-
-function showPreviewModal(a, brand) {
-  document.getElementById('analysisText').innerHTML = `
-    <strong>${document.getElementById('namaProduk').value}</strong><br>
-    ${a.ringkasan}<br><br>
-    <span style="color:var(--blue);font-weight:600">Karakter:</span> ${a.karakter} &nbsp;|&nbsp;
-    <span style="color:var(--blue);font-weight:600">Material:</span> ${a.material}<br>
-    <span style="color:var(--blue);font-weight:600">Mood foto:</span> ${a.mood_scene}
-  `;
-
-  const plan = document.getElementById('outputPlan');
-  plan.innerHTML = `
-    <div class="plan-item"><div class="plan-icon">👁️</div><div><div class="plan-text">Claude Vision</div><div class="plan-sub">Baca & ekstrak produk lo</div></div></div>
-    <div class="plan-item"><div class="plan-icon">✨</div><div><div class="plan-text">4 Foto Premium</div><div class="plan-sub">GPT Image 1 + referensi foto</div></div></div>
-    <div class="plan-item"><div class="plan-icon">🎨</div><div><div class="plan-text">5 Foto Utama</div><div class="plan-sub">Gemini Imagen 3</div></div></div>
-    <div class="plan-item"><div class="plan-icon">🌸</div><div><div class="plan-text">${varianCount} Foto Varian</div><div class="plan-sub">Nano Banana 2</div></div></div>
-  `;
-
-  const rp = a.estimasi_rp || (varianCount * 3200 + 500);
-  document.getElementById('costEstimate').textContent = '~Rp ' + rp.toLocaleString('id');
-  openModal('previewModal');
-}
-
-// ══════════════════════════════════════════
-//  GENERATE
-// ══════════════════════════════════════════
-async function doGenerate() {
-  closeModal('previewModal');
-
-  const nama  = document.getElementById('namaProduk').value;
-  const posisi = document.getElementById('posisiPasang').value;
-  const desc  = document.getElementById('deskripsiTambahan').value;
-  const brand = settings.brands.find(b => b.id === selectedBrand);
-  const base64Images = await Promise.all(uploadedFiles.map(toBase64));
-
-  document.getElementById('resultArea').style.display = 'block';
-  document.getElementById('resultArea').scrollIntoView({ behavior:'smooth', block:'start' });
-  setupResultPlaceholders();
-
-  // ── PHASE 1: Claude Vision baca produk ──
-  showLoading('FASE 1 — CLAUDE VISION', 'Membaca foto produk lo...', 0);
-  let productDesc = '';
-  try {
-    productDesc = await extractProductDescription(nama, posisi, desc, brand, base64Images);
-    console.log('[ProductDesc]', productDesc);
-    setStep(0, 'done');
-  } catch(e) {
-    console.error('Vision error:', e);
-    productDesc = `${nama}, dashboard car accessory, ${desc||''}`;
-    setStep(0, 'done');
-  }
-
-  // ── PHASE 2: SEO via Gemini Flash ──
-  updateLoading('FASE 2 — SEO', 'Gemini Flash menulis konten marketplace...', 1);
-  let seoData = null;
-  try {
-    seoData = await generateSEO(nama, posisi, desc, brand, base64Images, productDesc);
-    renderSEO(seoData);
-    setStep(1, 'done');
-  } catch(e) {
-    console.error('SEO error:', e);
-    setStep(1, 'done');
-  }
-
-  // ── PHASE 3: 4 Foto Premium via GPT Image 1 (dengan referensi foto) ──
-  updateLoading('FASE 3 — GPT IMAGE 1', '4 foto premium dengan referensi produk lo...', 2);
-  try {
-    await generateGPTPhotos(nama, posisi, brand, productDesc, base64Images);
-    setStep(2, 'done');
-  } catch(e) {
-    console.error('GPT photos error:', e);
-    for(let i=0;i<4;i++) updateResultPhotoError('main', i, GPT_SLOTS[i]?.label||`Foto ${i+1}`, e.message);
-    setStep(2, 'done');
-  }
-
-  // ── PHASE 4: 5 Foto via Gemini Imagen 3 ──
-  updateLoading('FASE 4 — GEMINI IMAGEN 3', '5 foto utama dengan Imagen 3...', 3);
-  try {
-    await generateImagenPhotos(nama, posisi, brand, productDesc);
-    setStep(3, 'done');
-  } catch(e) {
-    console.error('Imagen photos error:', e);
-    for(let i=4;i<9;i++) updateResultPhotoError('main', i, IMAGEN_SLOTS[i-4]?.label||`Foto ${i+1}`, e.message);
-    setStep(3, 'done');
-  }
-
-  // ── PHASE 5: Foto Varian via Nano Banana 2 ──
-  updateLoading('FASE 5 — NANO BANANA 2', 'Foto varian dengan Nano Banana...', 4);
-  try {
-    await generateVariantPhotos(nama, posisi, brand, productDesc, base64Images);
-    setStep(4, 'done');
-  } catch(e) {
-    console.error('Variant error:', e);
-    for(let i=0;i<varianCount;i++) updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
-    setStep(4, 'done');
-  }
-
-  hideLoading();
-  saveToHistory(nama, brand, seoData);
-  toast('✅ Generate selesai! Siap download.', 'success');
-}
-
-// ══════════════════════════════════════════
-//  MAIA ROUTER — UNIFIED API HELPER
-// ══════════════════════════════════════════
-async function maiaFetch(endpoint, body) {
-  const res = await fetch(`https://api.maiarouter.ai/v1${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.keys.maia}` },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.error?.message || data?.message || JSON.stringify(data);
-    throw new Error(`[${res.status}] ${msg}`);
-  }
-  return data;
-}
-
-// ── Ekstrak deskripsi visual produk via Claude Vision ──
-async function extractProductDescription(nama, posisi, desc, brand, imgs) {
-  const imageContents = imgs.slice(0,3).map((b64, i) => ({
-    type: 'image_url',
-    image_url: { url: `data:${uploadedFiles[i]?.type||'image/jpeg'};base64,${b64}` }
-  }));
-  const d = await maiaFetch('/chat/completions', {
-    model: 'maia/gemini-2.5-flash',
-    max_tokens: 400,
-    messages: [{ role:'user', content: [
-      ...imageContents,
-      { type:'text', text:`You are a professional product photographer. Describe this product in precise visual detail for an AI image generation prompt. Include: exact colors, shapes, materials, quantity of items, surface textures, any text/logos visible, size relationships. Be very specific and detailed. One paragraph only, no extra text.` }
-    ]}]
-  });
-  return d.choices[0].message.content.trim();
-}
-
-// ── Build professional 4-layer prompt ──
-function buildGeneratePrompt(productDesc, scene, posisi, brand) {
-  const ws = settings.testWizardStyle || wizardStyle;
-  const brandExtra = brand?.catatan_ai ? `. Brand instruction: ${brand.catatan_ai}` : '';
-  const style = `${ws.bg}, ${ws.mood}, ${ws.light}${brandExtra}`;
-
-  const L1 = `CRITICAL: PRESERVE THE EXACT PRODUCT APPEARANCE. Do NOT change product shape, color, design, or physical details. Only change background and environment.`;
-  const L2 = `PRODUCT: ${productDesc}`;
-  const L3 = `SCENE: ${scene}`;
-  const L4 = `STYLE: ${style}. Professional ecommerce photography equal to premium mall brand. 4K ultra-detailed commercial photography.`;
-
-  return `${L1}\n\n${L2}\n\n${L3}\n\n${L4}`;
-}
-
-// ── Generate 4 foto via GPT Image 1 (PARALLEL) ──
-async function generateGPTPhotos(nama, posisi, brand, productDesc, imgs) {
-  const scenes = [
-    { label:'Hero Shot',         scene:`Hero shot on ${posisi||'car dashboard'}, centered composition, product fully visible` },
-    { label:'Lifestyle Interior',scene:`Lifestyle photo inside luxury car interior, product naturally placed` },
-    { label:'Close-up Detail',   scene:`Extreme macro close-up showing material texture and fine details, ultra sharp` },
-    { label:'Night Mood',        scene:`Night scene car interior, warm glowing dashboard ambient lights, cinematic mood` }
-  ];
-
-  const tasks = scenes.map(async (slot, i) => {
-    const prompt = buildGeneratePrompt(productDesc, slot.scene, posisi, brand);
-    try {
-      let photoUrl = null;
-      // Coba /images/edits dengan referensi foto
-      try {
-        const imgBlob = base64ToBlob(imgs[0], uploadedFiles[0]?.type||'image/png');
-        const form = new FormData();
-        form.append('model', 'gpt-image-1');
-        form.append('image[]', imgBlob, 'product.png');
-        form.append('prompt', prompt);
-        form.append('n', '1');
-        form.append('size', '1024x1024');
-        const res = await fetch('https://api.maiarouter.ai/v1/images/edits', {
-          method:'POST',
-          headers:{ 'Authorization':`Bearer ${settings.keys.maia}` },
-          body: form
-        });
-        const d = await res.json();
-        photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      } catch(e) {
-        console.warn(`[GPT ${i+1}] edits fallback:`, e.message);
-      }
-      // Fallback generations
-      if (!photoUrl) {
-        const d = await maiaFetch('/images/generations', { model:'gpt-image-1', prompt, n:1, size:'1024x1024' });
-        photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      }
-      photoUrl ? updateResultPhoto('main', i, photoUrl, slot.label) : updateResultPhotoError('main', i, slot.label, 'No image');
-    } catch(e) {
-      updateResultPhotoError('main', i, slot.label, e.message);
-    }
-    document.getElementById('mainPhotoCount').textContent = `${i+1}/9`;
-  });
-
-  await Promise.all(tasks);
-}
-
-// ── Generate 5 foto via Gemini Imagen 3 (PARALLEL) ──
-async function generateImagenPhotos(nama, posisi, brand, productDesc) {
-  const slots = [
-    { label:'Full Set View',    scene:`Flat lay top-down view, all items arranged symmetrically, clean white background` },
-    { label:'Wide Angle',       scene:`Wide angle car interior, product prominent, spacious cabin visible` },
-    { label:'Infografis',       scene:`Product infographic style, clean white background, product centered` },
-    { label:'Feature Highlight',scene:`Marketing lifestyle shot, product as focal point, premium editorial` },
-    { label:'Social Proof',     scene:`Ecommerce product display, bestseller badge visual, trustworthy clean layout` }
-  ];
-
-  const tasks = slots.map(async (slot, i) => {
-    const prompt = buildGeneratePrompt(productDesc, slot.scene, posisi, brand);
-    try {
-      const d = await maiaFetch('/images/generations', { model:'maia/imagen-3.0-generate-001', prompt, n:1, size:'1024x1024' });
-      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      url ? updateResultPhoto('main', i+4, url, slot.label) : updateResultPhotoError('main', i+4, slot.label, 'No image');
-    } catch(e) {
-      updateResultPhotoError('main', i+4, slot.label, e.message);
-    }
-    document.getElementById('mainPhotoCount').textContent = `${i+5}/9`;
-  });
-
-  await Promise.all(tasks);
-}
-
-// ── Generate foto varian via Nano Banana 2 (PARALLEL) ──
-async function generateVariantPhotos(nama, posisi, brand, productDesc, imgs) {
-  const tasks = Array.from({ length: varianCount }, async (_, i) => {
-    const variantDesc = imgs[i] ? `Variant ${i+1} of: ${productDesc}` : productDesc;
-    const prompt = buildGeneratePrompt(variantDesc, `Product naturally placed on ${posisi||'center car dashboard'}, realistic placement, depth of field`, posisi, brand);
-    try {
-      const d = await maiaFetch('/images/generations', { model:'nano-banana-2', prompt, n:1, size:'1024x1024' });
-      const url = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-      url ? updateResultPhoto('variant', i, url, `Varian ${i+1}`) : updateResultPhotoError('variant', i, `Varian ${i+1}`, 'No image');
-    } catch(e) {
-      updateResultPhotoError('variant', i, `Varian ${i+1}`, e.message);
-    }
-    document.getElementById('variantPhotoCount').textContent = `${i+1}/${varianCount}`;
-  });
-
-  await Promise.all(tasks);
-}
-
-async function testImageGen() {
-  const key = document.getElementById('key-maia')?.value.trim() || settings.keys.maia;
-  if (!key) { toast('Isi API key dulu!', 'error'); return; }
-  const model = document.getElementById('model-image')?.value || settings.keys.modelImage || 'dall-e-3';
-
-  const result = document.getElementById('testResult');
-  result.style.display = 'block';
-  result.innerHTML = `<span style="color:var(--text-muted)">⏳ Testing image gen model: <strong>${model}</strong>...</span>`;
-
-  try {
-    const res = await fetch('https://api.maiarouter.ai/v1/images/generations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({ model, prompt: 'a small red circle on white background', n: 1, size: '1024x1024' })
-    });
-    const data = await res.json();
-    console.log('[Test Image Gen] Response:', data);
-    if (!res.ok) throw new Error(data?.error?.message || data?.message || `Status ${res.status}: ${JSON.stringify(data)}`);
-    const url = data.data?.[0]?.url || (data.data?.[0]?.b64_json ? `data:image/png;base64,${data.data[0].b64_json}` : null);
-    if (url) {
-      result.innerHTML = `<span style="color:var(--success)">✅ Image gen berhasil!</span><br><img src="${url}" style="width:80px;height:80px;border-radius:8px;margin-top:6px;object-fit:cover">`;
-      toast('✅ Image generation bekerja!', 'success');
-    } else {
-      result.innerHTML = `<span style="color:var(--warn)">⚠️ Response OK tapi tidak ada gambar.<br>Raw: ${JSON.stringify(data).slice(0,150)}</span>`;
-    }
-  } catch(e) {
-    result.innerHTML = `<span style="color:var(--error)">❌ Error: ${e.message}</span>`;
-    toast('❌ Image gen gagal — coba model lain', 'error');
-  }
-}
-
-async function testAPIKey() {
-  const key = document.getElementById('key-maia').value.trim();
-  if (!key) { toast('Isi API key dulu!', 'error'); return; }
-
-  const result = document.getElementById('testResult');
-  result.style.display = 'block';
-  result.innerHTML = `<span style="color:var(--text-muted)">⏳ Testing koneksi...</span>`;
-
-  try {
-    const res = await fetch('https://api.maiarouter.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: document.getElementById('model-vision').value || 'maia/gemini-2.5-flash',
-        max_tokens: 20,
-        messages: [{ role:'user', content: 'Balas dengan kata: OK' }]
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error?.message || data?.message || `Status ${res.status}`);
-    const reply = data?.choices?.[0]?.message?.content || 'Response OK';
-    result.innerHTML = `<span style="color:var(--success)">✅ Koneksi berhasil! AI menjawab: "${reply}"</span>`;
-    toast('✅ API Key valid!', 'success');
-  } catch(e) {
-    result.innerHTML = `<span style="color:var(--error)">❌ Error: ${e.message}</span>`;
-    toast('❌ Koneksi gagal', 'error');
-  }
-}
-
-async function generateSEO(nama, posisi, desc, brand, imgs) {
-  const imageContents = imgs.slice(0,2).map((b64, i) => ({
-    type: 'image_url',
-    image_url: { url: `data:${uploadedFiles[i].type||'image/jpeg'};base64,${b64}` }
-  }));
-
-  const brandProfile = brand ? `
-BRAND PROFILE:
-- Nama Brand: ${brand.name}
-- Gaya Foto: ${(brand.gaya_foto||[]).join(', ') || 'tidak ditentukan'}
-- Target Market: ${brand.target_market || 'umum'}
-- Mood & Estetika: ${brand.mood_estetika || 'natural'}
-- Kesan Warna: ${brand.kesan || 'netral'}
-- Instruksi Khusus: ${brand.catatan_ai || 'tidak ada'}
-` : '';
-
-  const d = await maiaFetch('/chat/completions', {
-    model: settings.keys.modelVision || 'maia/gemini-2.5-flash',
-    messages: [{ role:'user', content:[
-      ...imageContents,
-      { type:'text', text:`Kamu adalah copywriter e-commerce Indonesia ahli SEO Shopee & TikTok Shop.
-
-${brandProfile}
-
-Buat konten SEO untuk produk:
-- Nama: ${nama}
-- Posisi: ${posisi||'-'}
-- Catatan: ${desc||'-'}
-- Varian: ${varianCount} pilihan
-
-Balas HANYA JSON:
-{
-  "judul_shopee": "judul 60-80 karakter",
-  "judul_tiktok": "judul 40-60 karakter catchy",
-  "deskripsi": "150-200 kata natural informatif",
-  "keyword_utama": ["kw1","kw2","kw3","kw4","kw5"],
-  "keyword_ekor": ["long tail 1","long tail 2","long tail 3"],
-  "hashtag": ["#tag1","#tag2","#tag3","#tag4","#tag5"]
-}`
-    }]}]
-  });
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  return JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
-}
-
-async function generateSEO(nama, posisi, desc, brand, imgs, productDesc) {
-  const brandProfile = brand ? `Brand: ${brand.name}, gaya: ${(brand.gaya_foto||[]).join(', ')||'natural'}, target: ${brand.target_market||'umum'}, mood: ${brand.mood_estetika||'premium'}, instruksi: ${brand.catatan_ai||'-'}` : '';
-  const d = await maiaFetch('/chat/completions', {
-    model: 'maia/gemini-2.0-flash',
-    max_tokens: 1200,
-    messages: [{ role:'user', content:`Kamu adalah copywriter e-commerce Indonesia ahli SEO Shopee & TikTok Shop.
-${brandProfile}
-Deskripsi visual produk: ${productDesc||nama}
-Posisi: ${posisi||'dashboard mobil'}, Catatan: ${desc||'-'}, Varian: ${varianCount} pilihan
-Balas HANYA JSON: {"judul_shopee":"60-80 karakter","judul_tiktok":"40-60 karakter catchy","deskripsi":"150-200 kata natural","keyword_utama":["kw1","kw2","kw3","kw4","kw5"],"keyword_ekor":["lt1","lt2","lt3"],"hashtag":["#t1","#t2","#t3","#t4","#t5"]}`
-    }]
-  });
-  return JSON.parse(d.choices[0].message.content.replace(/```json|```/g,'').trim());
-}
-
-function setupResultPlaceholders() {
-  const mainGrid = document.getElementById('mainPhotosGrid');
-  const varGrid = document.getElementById('variantPhotosGrid');
-  mainGrid.innerHTML = '';
-  varGrid.innerHTML = '';
-  document.getElementById('mainPhotoCount').textContent = `0/9`;
-  document.getElementById('variantPhotoCount').textContent = `0/${varianCount}`;
-
-  for(let i=0;i<9;i++){
-    const div = document.createElement('div');
-    div.className = 'generating-placeholder';
-    div.id = `main-photo-${i}`;
-    div.innerHTML = `<div class="generating-spinner"></div><div class="gen-label">Foto ${i+1}</div>`;
-    mainGrid.appendChild(div);
-  }
-  for(let i=0;i<varianCount;i++){
-    const div = document.createElement('div');
-    div.className = 'generating-placeholder';
-    div.id = `variant-photo-${i}`;
-    div.innerHTML = `<div class="generating-spinner"></div><div class="gen-label">Varian ${i+1}</div>`;
-    varGrid.appendChild(div);
-  }
-}
-
-function updateResultPhoto(type, i, url, label) {
-  const el = document.getElementById(`${type}-photo-${i}`);
-  if (!el) return;
-  if (url) {
-    el.className = 'result-photo';
-    el.innerHTML = `<img src="${url}" loading="lazy"><div class="photo-label">${label}</div>`;
-  } else {
-    updateResultPhotoError(type, i, label, '');
-  }
-}
-
-function updateResultPhotoError(type, i, label, errMsg) {
-  const el = document.getElementById(`${type}-photo-${i}`);
-  if (!el) return;
-  el.className = 'result-photo';
-  el.innerHTML = `
-    <div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--blue-pale);gap:6px;padding:8px">
-      <span style="font-size:1.5rem">⚠️</span>
-      <span style="font-size:0.72rem;color:var(--blue);font-weight:700;text-align:center">${label}</span>
-      ${errMsg ? `<span style="font-size:0.65rem;color:var(--error);text-align:center;line-height:1.3">${errMsg.slice(0,60)}</span>` : ''}
-    </div>
-  `;
-}
-
-function renderPlaceholderPhotos(type, count, msg) {
-  for(let i=0;i<count;i++) updateResultPhoto(type, i, null, msg);
-}
-
-function renderSEO(data) {
-  if (!data) return;
-  const box = document.getElementById('seoBox');
-  box.innerHTML = `
-    <div class="seo-field">
-      <div class="seo-label">Judul Shopee</div>
-      <div class="seo-value" id="seo-shopee">${data.judul_shopee||'-'}</div>
-      <button class="seo-copy-btn" onclick="copySEO('seo-shopee', this)">📋 Copy</button>
-    </div>
-    <div class="seo-field">
-      <div class="seo-label">Judul TikTok Shop</div>
-      <div class="seo-value" id="seo-tiktok">${data.judul_tiktok||'-'}</div>
-      <button class="seo-copy-btn" onclick="copySEO('seo-tiktok', this)">📋 Copy</button>
-    </div>
-    <div class="seo-field">
-      <div class="seo-label">Deskripsi Produk</div>
-      <div class="seo-value" id="seo-desc">${(data.deskripsi||'-').replace(/\n/g,'<br>')}</div>
-      <button class="seo-copy-btn" onclick="copySEO('seo-desc', this)">📋 Copy</button>
-    </div>
-    <div class="seo-field">
-      <div class="seo-label">Keyword Utama</div>
-      <div class="seo-value" id="seo-kw">${(data.keyword_utama||[]).join(' • ')}</div>
-      <button class="seo-copy-btn" onclick="copySEO('seo-kw', this)">📋 Copy</button>
-    </div>
-    <div class="seo-field">
-      <div class="seo-label">Hashtag</div>
-      <div class="seo-value" id="seo-ht">${(data.hashtag||[]).join(' ')}</div>
-      <button class="seo-copy-btn" onclick="copySEO('seo-ht', this)">📋 Copy</button>
-    </div>
-  `;
-}
-
-function copySEO(id, btn) {
-  const el = document.getElementById(id);
-  navigator.clipboard.writeText(el.innerText);
-  btn.textContent = '✅ Copied!';
-  btn.className = 'seo-copy-btn copied';
-  setTimeout(() => { btn.textContent = '📋 Copy'; btn.className = 'seo-copy-btn'; }, 2000);
-}
-
-function copyAllSEO() {
-  const ids = ['seo-shopee','seo-tiktok','seo-desc','seo-kw','seo-ht'];
-  let all = ids.map(id => {
-    const el = document.getElementById(id);
-    return el ? el.innerText : '';
-  }).join('\n\n---\n\n');
-  navigator.clipboard.writeText(all);
-  toast('✅ Semua SEO berhasil dicopy!', 'success');
-}
-
-async function downloadZIP() {
-  const allImgs = [];
-  document.querySelectorAll('#mainPhotosGrid .result-photo img, #variantPhotosGrid .result-photo img').forEach((img, i) => {
-    const label = img.closest('.result-photo')?.querySelector('.photo-label')?.textContent || `foto-${i+1}`;
-    allImgs.push({ url: img.src, name: label.replace(/[^a-zA-Z0-9\s]/g,'').trim().replace(/\s+/g,'-') + '.jpg' });
-  });
-
-  if (allImgs.length === 0) { toast('Belum ada foto yang di-generate!', 'error'); return; }
-
-  toast('⬇️ Menyiapkan download...', 'info');
-
-  // Load JSZip dari CDN
-  if (!window.JSZip) {
-    await new Promise((res, rej) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  const nama = document.getElementById('namaProduk').value || 'produk';
-  const zip = new JSZip();
-  const folderMain = zip.folder('foto-utama');
-  const folderVarian = zip.folder('foto-varian');
-
-  // Tambah SEO ke ZIP
-  const seoFields = ['seo-shopee','seo-tiktok','seo-desc','seo-kw','seo-ht'];
-  const labels = ['Judul Shopee','Judul TikTok','Deskripsi','Keyword Utama','Hashtag'];
-  let seoText = `SEO - ${nama}\n${'='.repeat(50)}\n\n`;
-  seoFields.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el) seoText += `${labels[i]}:\n${el.innerText}\n\n${'-'.repeat(30)}\n\n`;
-  });
-  zip.file('SEO.txt', seoText);
-
-  // Download & masukkan foto ke ZIP
-  let done = 0;
-  for (const img of allImgs) {
-    try {
-      const isVarian = img.name.toLowerCase().includes('varian');
-      let blob;
-      if (img.url.startsWith('data:')) {
-        const b64 = img.url.split(',')[1];
-        const bytes = atob(b64);
-        const arr = new Uint8Array(bytes.length);
-        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-        blob = arr;
-      } else {
-        const r = await fetch(img.url);
-        blob = await r.arrayBuffer();
-      }
-      const folder = isVarian ? folderVarian : folderMain;
-      folder.file(`${String(done+1).padStart(2,'0')}-${img.name}`, blob);
-      done++;
-      toast(`⬇️ Memproses ${done}/${allImgs.length} foto...`, 'info');
-    } catch(e) {
-      console.warn('Skip foto:', img.name, e);
-    }
-  }
-
-  // Generate & trigger download
-  const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${nama.replace(/\s+/g,'-')}-${Date.now()}.zip`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
-
-  toast(`✅ ZIP berhasil didownload! ${done} foto + SEO`, 'success');
-}
-
-// ══════════════════════════════════════════
-//  HISTORY
-// ══════════════════════════════════════════
-function saveToHistory(nama, brand, seo) {
-  const item = {
-    id: Date.now(),
-    nama, brand: brand?.id, brandName: brand?.name, brandColor: brand?.color,
-    seo, varian: varianCount,
-    tanggal: new Date().toLocaleDateString('id-ID'),
-    thumb: uploadedFiles[0] ? URL.createObjectURL(uploadedFiles[0]) : null
-  };
-  history.unshift(item);
-  localStorage.setItem('his_hosela', JSON.stringify(history.map(h => ({...h, thumb: null}))));
-}
-
-function renderHistory() {
-  const grid = document.getElementById('historyGrid');
-  if (history.length === 0) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📦</div><div class="empty-title">Belum ada riwayat</div><div class="empty-sub">Generate produk pertama kamu!</div></div>`;
-    return;
-  }
-  grid.innerHTML = '';
-  history.forEach((h, i) => {
-    const card = document.createElement('div');
-    card.className = 'history-card';
-    card.innerHTML = `
-      <div class="history-thumb">
-        ${h.thumb ? `<img src="${h.thumb}">` : '📦'}
-        <div class="history-brand-badge" style="background:${h.brandColor||'#0057FF'}">${h.brandName||'Hosela'}</div>
-      </div>
-      <div class="history-body">
-        <div class="history-name">${h.nama}</div>
-        <div class="history-meta">${h.tanggal} &nbsp;•&nbsp; ${h.varian} varian</div>
-        <div class="history-actions">
-          <button class="history-btn primary" onclick="viewHistory(${i})">📄 Lihat SEO</button>
-          <button class="history-btn danger" onclick="deleteHistory(${i})">🗑️</button>
-        </div>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-function viewHistory(i) {
-  const h = history[i];
-  if (!h.seo) { toast('SEO tidak tersimpan untuk produk ini', 'error'); return; }
-  document.getElementById('analysisText').innerHTML = `<strong>${h.nama}</strong><br>Brand: ${h.brandName} • ${h.tanggal}`;
-  document.getElementById('outputPlan').innerHTML = '';
-  document.getElementById('costEstimate').textContent = '—';
-  openModal('previewModal');
-}
-
-function deleteHistory(i) {
-  if (!confirm('Hapus riwayat ini?')) return;
-  history.splice(i, 1);
-  localStorage.setItem('his_hosela', JSON.stringify(history));
-  renderHistory();
-  toast('🗑️ Dihapus', 'info');
-}
-
-// ══════════════════════════════════════════
-//  SETTINGS
-// ══════════════════════════════════════════
-function openSettings() {
-  const maiaVal = settings.keys.maia || '';
-  document.getElementById('key-maia').value = maiaVal;
-  showKeySaved(maiaVal);
-  // Peringatan kalau key kosong atau invalid
-  if (!maiaVal || !maiaVal.startsWith('sk-')) {
-    setTimeout(() => toast('⚠️ API Key belum diisi atau tidak valid. Paste key dari MaiaRouter!', 'error'), 300);
-  }
-  const visionSel = document.getElementById('model-vision');
-  const imageSel  = document.getElementById('model-image');
-  if (visionSel) visionSel.value = settings.keys.modelVision || 'maia/gemini-2.5-flash';
-  if (imageSel)  imageSel.value  = settings.keys.modelImage  || 'dall-e-3';
-  openModal('settingsModal');
-}
-
-function showKeySaved(val) {
-  const badge = document.getElementById('key-saved-badge');
-  const warn  = document.getElementById('key-warn-badge');
-  const trimmed = (val||'').trim();
-  if (!trimmed) {
-    if (badge) badge.style.display = 'none';
-    if (warn)  warn.style.display  = 'none';
-  } else if (!trimmed.startsWith('sk-')) {
-    if (badge) badge.style.display = 'none';
-    if (warn)  { warn.style.display = 'inline'; warn.textContent = '⚠️ Key harus dimulai sk-'; }
-  } else {
-    if (badge) badge.style.display = 'inline';
-    if (warn)  warn.style.display  = 'none';
-  }
-}
-
-function saveKey(key, val) {
-  if (key === 'maia') {
-    const trimmed = (val||'').trim();
-    // Jangan simpan kalau format salah
-    if (trimmed && !trimmed.startsWith('sk-')) {
-      showKeySaved(trimmed);
-      return; // tidak disimpan ke localStorage
-    }
-    settings.keys.maia = trimmed;
-  } else {
-    settings.keys[key] = val;
-  }
-  if (!settings.brands || !settings.brands.length) {
-    const saved = JSON.parse(localStorage.getItem('cfg_hosela') || '{}');
-    if (saved.brands && saved.brands.length) settings.brands = saved.brands;
-  }
-  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-}
-
-function saveSettings() {
-  const maiaInput = document.getElementById('key-maia');
-  const visionSel = document.getElementById('model-vision');
-  const imageSel  = document.getElementById('model-image');
-  const newKey = (maiaInput?.value||'').trim();
-  // Validasi key sebelum simpan
-  if (newKey && !newKey.startsWith('sk-')) {
-    toast('⚠️ API Key tidak valid! Harus dimulai sk-', 'error');
-    return;
-  }
-  if (maiaInput) settings.keys.maia = newKey;
-  if (visionSel) settings.keys.modelVision = visionSel.value;
-  if (imageSel)  settings.keys.modelImage  = imageSel.value;
-  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-  renderBrands();
-  closeModal('settingsModal');
-  toast('✅ Pengaturan tersimpan!', 'success');
-}
-
-function renderBrandManager() {
-  const list = document.getElementById('brandManagerList');
-  list.innerHTML = '';
-  settings.brands.forEach(b => {
-    const row = document.createElement('div');
-    row.className = 'brand-row';
-    row.dataset.id = b.id;
-    row.innerHTML = `
-      <input type="color" class="brand-color-pick" value="${b.color}">
-      <input type="text" class="brand-name-input" value="${b.name}" placeholder="Nama brand">
-      <input type="text" class="brand-kesan" value="${b.kesan}" placeholder="Kesan warna" style="width:90px;border:none;background:transparent;font-family:'Exo 2',sans-serif;font-size:0.8rem;color:var(--text-muted);outline:none;">
-      <button class="brand-delete" onclick="this.closest('.brand-row').remove()">🗑️</button>
-    `;
-    list.appendChild(row);
-  });
-}
-
-function addBrand() {
-  const list = document.getElementById('brandManagerList');
-  const id = 'brand_' + Date.now();
-  const row = document.createElement('div');
-  row.className = 'brand-row';
-  row.dataset.id = id;
-  row.innerHTML = `
-    <input type="color" class="brand-color-pick" value="#0057FF">
-    <input type="text" class="brand-name-input" value="" placeholder="Nama brand baru">
-    <input type="text" class="brand-kesan" value="" placeholder="Kesan warna" style="width:90px;border:none;background:transparent;font-family:'Exo 2',sans-serif;font-size:0.8rem;color:var(--text-muted);outline:none;">
-    <button class="brand-delete" onclick="this.closest('.brand-row').remove()">🗑️</button>
-  `;
-  list.appendChild(row);
-}
-
-function toggleKey(inputId, btn) {
-  const inp = document.getElementById(inputId);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
-}
-
-// ══════════════════════════════════════════
-//  MODAL HELPERS
-// ══════════════════════════════════════════
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// ══════════════════════════════════════════
-//  LOADING HELPERS
-// ══════════════════════════════════════════
-function showLoading(status, sub, step) {
-  document.getElementById('loadingOverlay').classList.add('open');
-  updateLoading(status, sub, step);
-}
-function hideLoading() { document.getElementById('loadingOverlay').classList.remove('open'); }
-function updateLoading(status, sub, step) {
-  document.getElementById('loadingStatus').textContent = status;
-  document.getElementById('loadingSub').textContent = sub;
-  for(let i=0;i<5;i++) {
-    const dot = document.getElementById('step'+i);
-    if(dot) dot.className = 'step-dot' + (i < step ? ' done' : i === step ? ' active' : '');
-  }
-}
-function setStep(i, state) {
-  const dot = document.getElementById('step'+i);
-  if(dot) dot.className = 'step-dot ' + (state === 'done' ? 'done' : 'active');
-}
-
-// ══════════════════════════════════════════
-//  UTILS
-// ══════════════════════════════════════════
-function toBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-function toast(msg, type='info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast show ${type}`;
-  setTimeout(() => el.classList.remove('show'), 3500);
-}
-
-function resetForm() {
-  uploadedFiles = [];
-  renderPhotoGrid();
-  document.getElementById('namaProduk').value = '';
-  document.getElementById('posisiPasang').value = '';
-  document.getElementById('deskripsiTambahan').value = '';
-  varianCount = 3;
-  document.getElementById('varianDisplay').textContent = 3;
-  document.getElementById('resultArea').style.display = 'none';
-  document.getElementById('uploadZone').style.display = 'flex';
-  document.getElementById('photoGrid').style.display = 'none';
-  toast('Form direset', 'info');
-}
-
-// ══════════════════════════════════════════
-//  TEST FOTO
-// ══════════════════════════════════════════
-let testFile = null;
-let testBase64 = null;
-let wizardStyle = {
-  bg:    'luxury car interior background, modern dashboard, bokeh',
-  mood:  'luxury premium feel, high-end product, expensive look',
-  light: 'soft warm lighting, golden hour, gentle shadows'
+import { useState, useEffect, useRef } from "react";
+
+// ── FONTS ─────────────────────────────────────────────────────────────────────
+const injectFonts = () => {
+  if (document.getElementById("hosela-fonts")) return;
+  const l = document.createElement("link"); l.id = "hosela-fonts";
+  l.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap";
+  l.rel = "stylesheet"; document.head.appendChild(l);
 };
-let lastTestProductDesc = '';
-const MODEL_LIST = [
-  'gpt-image-1',
-  'dall-e-3',
-  'maia/imagen-3.0-generate-001',
-  'nano-banana-2',
-  'dall-e-2'
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+const C = {
+  bg:       "#FAF7F2",
+  bgSoft:   "#F5F0E8",
+  white:    "#FFFFFF",
+  accent:   "#C4714A",
+  accentL:  "#F2E8E1",
+  accentD:  "#A05A38",
+  text:     "#1C1A18",
+  muted:    "#888880",
+  mutedL:   "#BBB5AA",
+  border:   "#EDE8DF",
+  borderD:  "#D9D2C7",
+  gold:     "#C4994A",
+  green:    "#4A9C6A",
+  red:      "#E05555",
+  serif:    "'Playfair Display', Georgia, serif",
+  sans:     "'Plus Jakarta Sans', system-ui, sans-serif",
+};
+
+const rp = (n) => "Rp\u00a0" + n.toLocaleString("id-ID");
+const disc = (p) => Math.round((1 - p.price / p.orig) * 100);
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+// Hanya Hosela Official — brand lain dihapus sesuai permintaan
+const BRANDS = [
+  { id:"hosela", name:"Hosela Official", color:"#C4714A" },
 ];
 
-function selectWizard(el, group) {
-  // Deselect semua di group ini
-  document.querySelectorAll(`.gaya-opt[data-group="${group}"]`).forEach(e => e.classList.remove('active'));
-  el.classList.add('active');
-  wizardStyle[group] = el.dataset.val;
-}
+const CATS = ["Semua","Parfum","Dashboard","Steering","Karpet","Aksesori","Lighting","Organizer"];
 
-function triggerTestUpload() { document.getElementById('testFileInput').click(); }
+const PRODUCTS = [
+  { id:1,  brand:"hosela", name:"Parfum Oud Noir Premium",            price:89000,  orig:119000, rating:4.9, sold:2341, badge:"Terlaris",   cat:"Parfum",     img:"https://picsum.photos/seed/prd01/400/400", desc:"Aroma oud mewah tahan hingga 30 hari. Menghadirkan ketenangan dan keeleganan kabin." },
+  { id:2,  brand:"hosela", name:"Dashboard Mat Anti Slip Kulit",      price:125000, orig:159000, rating:4.8, sold:1890, badge:"Pilihan",    cat:"Dashboard",  img:"https://picsum.photos/seed/prd02/400/400", desc:"Material premium anti-slip, lindungi dashboard dari goresan dan debu." },
+  { id:3,  brand:"hosela", name:"Steering Cover Kulit Sintetis",      price:145000, orig:189000, rating:4.7, sold:3200, badge:"Hot",        cat:"Steering",   img:"https://picsum.photos/seed/prd03/400/400", desc:"Kulit sintetis premium dengan grip sempurna. Nyaman di tangan, elegan." },
+  { id:4,  brand:"hosela", name:"Karpet Luxury Full Set",             price:250000, orig:299000, rating:4.9, sold:987,  badge:"Premium",    cat:"Karpet",     img:"https://picsum.photos/seed/prd04/400/400", desc:"Full set karpet anti-kotor dan anti-slip untuk semua tipe kendaraan." },
+  { id:5,  brand:"hosela", name:"Tissue Box Holder Kayu Natural",     price:75000,  orig:99000,  rating:4.8, sold:4512, badge:"Terlaris",  cat:"Aksesori",   img:"https://picsum.photos/seed/prd05/400/400", desc:"Tempat tisu kayu natural finish, minimalis elegan untuk interior mobil." },
+  { id:6,  brand:"hosela", name:"Seat Gap Organizer Premium",         price:99000,  orig:129000, rating:4.6, sold:1234, badge:null,         cat:"Organizer",  img:"https://picsum.photos/seed/prd06/400/400", desc:"Pengisi celah kursi premium multifungsi, cegah barang jatuh." },
+  { id:7,  brand:"hosela", name:"LED Ambient Interior 64 Warna",      price:135000, orig:179000, rating:4.7, sold:2876, badge:"Trending",   cat:"Lighting",   img:"https://picsum.photos/seed/prd07/400/400", desc:"LED ambient 64 warna remote kontrol, ubah suasana kabin jadi premium lounge." },
+  { id:8,  brand:"hosela", name:"Car Organizer Oxford Premium",       price:189000, orig:229000, rating:4.8, sold:765,  badge:"Baru",       cat:"Organizer",  img:"https://picsum.photos/seed/prd08/400/400", desc:"8 kompartmen material oxford tahan air, terpasang rapi di balik kursi." },
+  { id:9,  brand:"hosela", name:"Pewangi Gantung Kayu Cendana",       price:55000,  orig:75000,  rating:4.7, sold:3100, badge:null,         cat:"Parfum",     img:"https://picsum.photos/seed/prd09/400/400", desc:"Pewangi gantung alami dari kayu cendana pilihan, wangi natural tahan lama." },
+  { id:10, brand:"hosela", name:"Pelindung Dashboard Anti UV",        price:165000, orig:210000, rating:4.6, sold:654,  badge:"Promo",      cat:"Dashboard",  img:"https://picsum.photos/seed/prd10/400/400", desc:"Lindungi dashboard dari sinar UV dan panas matahari langsung." },
+  { id:11, brand:"hosela", name:"Bantal Leher Memory Foam",           price:115000, orig:149000, rating:4.8, sold:2200, badge:"Pilihan",    cat:"Aksesori",   img:"https://picsum.photos/seed/prd11/400/400", desc:"Bantal leher memory foam untuk kenyamanan pengemudi & penumpang." },
+  { id:12, brand:"hosela", name:"Charger Mobil Fast Charging 65W",    price:145000, orig:189000, rating:4.9, sold:1543, badge:"Terlaris",  cat:"Aksesori",   img:"https://picsum.photos/seed/prd12/400/400", desc:"Charger mobil fast charging 65W dual port USB-C, kompatibel semua perangkat." },
+  { id:13, brand:"hosela", name:"Sarung Jok Full Set Premium",        price:320000, orig:399000, rating:4.8, sold:876,  badge:"Premium",    cat:"Aksesori",   img:"https://picsum.photos/seed/prd13/400/400", desc:"Sarung jok full set material premium, fitting presisi untuk semua tipe mobil." },
+  { id:14, brand:"hosela", name:"Kaca Film Anti Panas 80%",           price:280000, orig:350000, rating:4.7, sold:654,  badge:"Flash Sale", cat:"Aksesori",   img:"https://picsum.photos/seed/prd14/400/400", desc:"Kaca film premium tolak panas hingga 80%, UV protection 99%." },
+  { id:15, brand:"hosela", name:"Dashcam 1080p Night Vision",         price:450000, orig:599000, rating:4.9, sold:432,  badge:"Flash Sale", cat:"Aksesori",   img:"https://picsum.photos/seed/prd15/400/400", desc:"Dashcam 1080p night vision, rekam setiap momen perjalanan dengan jelas." },
+  { id:16, brand:"hosela", name:"Vacuum Cleaner Portable 12V",        price:195000, orig:249000, rating:4.6, sold:1200, badge:"Flash Sale", cat:"Aksesori",   img:"https://picsum.photos/seed/prd16/400/400", desc:"Vacuum cleaner portable 12V, bersihkan interior mobil kapan saja." },
+];
 
-function handleTestFile(file) {
-  if (!file) return;
-  testFile = file;
-  const url = URL.createObjectURL(file);
-  const zone = document.getElementById('testUploadZone');
-  zone.style.cssText += `;background-image:url(${url});background-size:cover;background-position:center`;
-  document.getElementById('testUploadIcon').style.display = 'none';
-  const txt = document.getElementById('testUploadText');
-  txt.textContent = '✅ ' + file.name;
-  txt.style.cssText = 'background:rgba(0,0,0,0.55);color:white;padding:4px 12px;border-radius:6px;font-size:0.82rem';
-  toBase64(file).then(b64 => testBase64 = b64);
-  toast('✅ Foto terupload!', 'success');
-}
+// Flash sale products (subset dengan harga spesial)
+const FLASH_PRODUCTS = [
+  { ...PRODUCTS[13], flashPrice: 229000, orig: 350000, soldCount: 45, totalStock: 50 },
+  { ...PRODUCTS[14], flashPrice: 379000, orig: 599000, soldCount: 18, totalStock: 30 },
+  { ...PRODUCTS[15], flashPrice: 159000, orig: 249000, soldCount: 67, totalStock: 80 },
+  { ...PRODUCTS[8],  flashPrice: 45000,  orig: 75000,  soldCount: 12, totalStock: 25 },
+  { ...PRODUCTS[5],  flashPrice: 79000,  orig: 129000, soldCount: 33, totalStock: 40 },
+  { ...PRODUCTS[11], flashPrice: 119000, orig: 189000, soldCount: 52, totalStock: 60 },
+];
 
-// ── 4-Layer Professional Prompt Builder ──
-function buildProPrompt(productDesc, scene, posisi) {
-  const style = `${wizardStyle.bg}, ${wizardStyle.mood}, ${wizardStyle.light}`;
-  const sceneInstructions = {
-    hero:       `hero shot on ${posisi||'car dashboard'}, centered composition, product fully visible`,
-    lifestyle:  `lifestyle photo inside luxury car interior, product naturally placed, driver POV angle`,
-    closeup:    `extreme macro close-up, showing material texture and fine details, ultra sharp focus`,
-    nightmood:  `night scene car interior, warm glowing dashboard ambient lights, cinematic mood`,
-    fullset:    `flat lay product photography, all items arranged symmetrically, top-down bird-eye view`,
-    wideangle:  `wide angle interior shot, product small but prominent, spacious car interior visible`,
-    infografis: `product infographic style, clean white background, product centered with annotation space`,
-    feature:    `marketing lifestyle shot, product as focal point, premium brand editorial photography`,
-    socialproof:`ecommerce product display, clean and trustworthy visual, bestseller presentation style`,
-    varian:     `product naturally placed on ${posisi||'center car dashboard'}, realistic placement, depth of field`,
+const brandOf = (id) => BRANDS.find(b => b.id === id);
+
+// ── FLASH SALE COUNTDOWN ──────────────────────────────────────────────────────
+function useCountdown(targetDate) {
+  const calcRemaining = () => {
+    const diff = targetDate - Date.now();
+    if (diff <= 0) return { h: 0, m: 0, s: 0, ended: true };
+    return {
+      h: Math.floor(diff / 3600000),
+      m: Math.floor((diff % 3600000) / 60000),
+      s: Math.floor((diff % 60000) / 1000),
+      ended: false,
+    };
   };
-
-  // Layer 1: Product preservation (PALING PENTING)
-  const L1 = `CRITICAL INSTRUCTION: This is a product photo for an Indonesian ecommerce store. PRESERVE THE EXACT PRODUCT APPEARANCE. Do NOT change the product's shape, color, design, or any physical details. The product must look IDENTICAL to the reference image. Only the background, environment, and lighting should change.`;
-
-  // Layer 2: Product description
-  const L2 = `PRODUCT: ${productDesc}`;
-
-  // Layer 3: Scene & composition
-  const L3 = `SCENE: ${sceneInstructions[scene]||sceneInstructions.hero}`;
-
-  // Layer 4: Style & quality
-  const L4 = `STYLE: ${style}. Shot quality equal to premium mall brand ecommerce photography. Professional commercial photography. 4K ultra-detailed. Shot on Sony A7R IV with 85mm f/1.4 lens.`;
-
-  return `${L1}\n\n${L2}\n\n${L3}\n\n${L4}`;
+  const [rem, setRem] = useState(calcRemaining);
+  useEffect(() => {
+    const t = setInterval(() => setRem(calcRemaining()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return rem;
 }
 
-async function doTestPhoto() {
-  if (!testFile || !testBase64) { toast('Upload foto produk dulu!', 'error'); return; }
-  if (!settings.keys.maia) { toast('Isi API key di Settings dulu!', 'error'); openSettings(); return; }
+// ── NAVBAR ────────────────────────────────────────────────────────────────────
+function Navbar({ cartCount, onCartOpen, onNav, page, user, onLoginOpen }) {
+  return (
+    <nav style={{
+      position:"fixed", top:0, left:0, right:0, zIndex:300,
+      background:C.white, borderBottom:`1px solid ${C.border}`,
+      boxShadow:"0 2px 12px rgba(0,0,0,0.06)",
+    }}>
+      {/* Promo bar */}
+      <div style={{ background:C.accent, padding:"7px 24px", textAlign:"center" }}>
+        <span style={{ fontFamily:C.sans, fontSize:11, color:"#fff", letterSpacing:1 }}>
+          🚗 &nbsp;FREE ONGKIR untuk order di atas Rp150.000 &nbsp;·&nbsp; Kode: <b>HOSELA25</b>
+        </span>
+      </div>
 
-  const nama   = document.getElementById('testNama').value || 'car dashboard decoration product';
-  const posisi = document.getElementById('testPosisi').value || 'car dashboard';
-  const scene  = document.getElementById('testScene').value;
-  const model  = document.getElementById('testModelSelect').value;
-
-  document.getElementById('testResultArea').style.display = 'block';
-  document.getElementById('testResultArea').scrollIntoView({ behavior:'smooth' });
-  document.getElementById('testPhotoBox').innerHTML = '<div class="generating-spinner"></div>';
-  document.getElementById('testPromptBox').textContent = '⏳ Step 1/2: Claude Vision membaca foto produk lo...';
-  document.getElementById('testModelUsed').textContent = `Model: ${model}`;
-
-  try {
-    // Step 1: Claude Vision ekstrak deskripsi produk
-    if (!lastTestProductDesc) {
-      const vRes = await maiaFetch('/chat/completions', {
-        model: 'maia/gemini-2.5-flash',
-        max_tokens: 300,
-        messages: [{ role:'user', content:[
-          { type:'image_url', image_url:{ url:`data:${testFile.type};base64,${testBase64}` }},
-          { type:'text', text:`You are a professional product photographer. Describe this product in precise visual detail for an AI image generation prompt. Include: exact colors, shapes, materials, quantity of items, surface textures, any text/logos visible, size relationships between items. Be very specific. One paragraph only, no extra text.` }
-        ]}]
-      });
-      lastTestProductDesc = vRes.choices[0].message.content.trim();
-    }
-
-    // Step 2: Build 4-layer prompt
-    const fullPrompt = buildProPrompt(lastTestProductDesc, scene, posisi);
-    document.getElementById('testPromptBox').textContent = fullPrompt;
-
-    // Step 3: Generate foto
-    let photoUrl = null;
-
-    // Coba /images/edits dulu (preserve produk lebih baik)
-    if (model === 'gpt-image-1' || model === 'dall-e-2') {
-      try {
-        const imgBlob = base64ToBlob(testBase64, testFile.type);
-        const form = new FormData();
-        form.append('model', model);
-        form.append('image[]', imgBlob, 'product.png');
-        form.append('prompt', fullPrompt);
-        form.append('n', '1');
-        form.append('size', '1024x1024');
-        const res = await fetch('https://api.maiarouter.ai/v1/images/edits', {
-          method:'POST',
-          headers:{ 'Authorization':`Bearer ${settings.keys.maia}` },
-          body: form
-        });
-        const d = await res.json();
-        photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-        if (photoUrl) console.log('[Test] Used /images/edits ✅');
-      } catch(e) {
-        console.warn('[Test] edits failed, fallback to generations:', e.message);
-      }
-    }
-
-    // Fallback ke generations
-    if (!photoUrl) {
-      const d = await maiaFetch('/images/generations', { model, prompt: fullPrompt, n:1, size:'1024x1024' });
-      photoUrl = d.data?.[0]?.url || (d.data?.[0]?.b64_json ? `data:image/png;base64,${d.data[0].b64_json}` : null);
-    }
-
-    if (photoUrl) {
-      document.getElementById('testPhotoBox').innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover">`;
-      document.getElementById('testModelUsed').innerHTML = `<span style="color:var(--success)">✅ Model: ${model} | Scene: ${scene}</span>`;
-      toast('✅ Test berhasil!', 'success');
-    } else {
-      throw new Error('Tidak ada gambar yang dihasilkan');
-    }
-  } catch(e) {
-    document.getElementById('testPhotoBox').innerHTML = `<div style="padding:16px;text-align:center;color:var(--error);font-size:0.8rem;line-height:1.5">❌ ${e.message}<br><br><small>Coba model lain →</small></div>`;
-    document.getElementById('testModelUsed').innerHTML = `<span style="color:var(--error)">❌ Gagal — coba model lain atau scene lain</span>`;
-    toast('❌ ' + e.message.slice(0,60), 'error');
-  }
+      {/* Main nav */}
+      <div style={{ display:"flex", alignItems:"center", padding:"0 24px", height:60, gap:20 }}>
+        <div onClick={() => onNav("home")} style={{ cursor:"pointer", flexShrink:0 }}>
+          <div style={{ fontFamily:C.serif, fontSize:20, color:C.accent, letterSpacing:2, fontWeight:600, lineHeight:1 }}>Hosela</div>
+          <div style={{ fontFamily:C.sans, fontSize:8, color:C.muted, letterSpacing:3, textTransform:"uppercase" }}>Auto Store</div>
+        </div>
+        <div style={{ width:1, height:28, background:C.border, flexShrink:0 }}/>
+        <div style={{ display:"flex", gap:24, flex:1 }}>
+          {[["home","Beranda"],["catalog","Produk"]].map(([p,lbl]) => (
+            <span key={p} onClick={() => onNav(p)} style={{
+              fontFamily:C.sans, fontSize:13, fontWeight:500, cursor:"pointer",
+              color: page===p ? C.accent : C.muted,
+              borderBottom: page===p ? `2px solid ${C.accent}` : "2px solid transparent",
+              paddingBottom:2, transition:"color 0.15s",
+            }}>{lbl}</span>
+          ))}
+        </div>
+        <div style={{
+          display:"flex", alignItems:"center", gap:8,
+          background:C.bg, border:`1px solid ${C.border}`,
+          borderRadius:20, padding:"7px 14px", flex:"0 1 260px",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input placeholder="Cari produk..." style={{
+            border:"none", background:"transparent", fontFamily:C.sans,
+            fontSize:12, color:C.text, outline:"none", width:"100%",
+          }}/>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <div onClick={user ? undefined : onLoginOpen} style={{ cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center" }}>
+            {user ? (
+              <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} style={{ width:30, height:30, borderRadius:"50%", border:`2px solid ${C.accent}` }}/>
+            ) : (
+              <>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span style={{ fontFamily:C.sans, fontSize:9, color:C.muted }}>Masuk</span>
+              </>
+            )}
+          </div>
+          <div onClick={onCartOpen} style={{ cursor:"pointer", position:"relative", display:"flex", flexDirection:"column", alignItems:"center" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.5">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+            <span style={{ fontFamily:C.sans, fontSize:9, color:C.muted }}>Keranjang</span>
+            {cartCount > 0 && (
+              <div style={{
+                position:"absolute", top:-4, right:-6,
+                minWidth:17, height:17, borderRadius:10,
+                background:C.accent, color:"#fff",
+                fontFamily:C.sans, fontSize:9, fontWeight:700,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                padding:"0 4px",
+              }}>{cartCount}</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
 }
 
-function tryNextModel() {
-  const sel = document.getElementById('testModelSelect');
-  const idx = MODEL_LIST.indexOf(sel.value);
-  const next = MODEL_LIST[(idx + 1) % MODEL_LIST.length];
-  sel.value = next;
-  toast(`⏭️ Ganti ke: ${next}`, 'info');
-  doTestPhoto();
+// ── COMPACT PRODUCT CARD (Sociolla style — lebih kecil) ──────────────────────
+function CompactProductCard({ product, onView, onAddCart, flashPrice }) {
+  const [hov, setHov] = useState(false);
+  const displayPrice = flashPrice || product.price;
+  const displayOrig  = flashPrice ? product.orig : product.orig;
+  const br = brandOf(product.brand);
+
+  return (
+    <div
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      onClick={() => onView(product)}
+      style={{
+        width: 152, flexShrink: 0,
+        background: C.white, borderRadius: 10, overflow: "hidden",
+        border: `1px solid ${hov ? C.borderD : C.border}`,
+        boxShadow: hov ? "0 4px 16px rgba(0,0,0,0.08)" : "0 1px 4px rgba(0,0,0,0.03)",
+        transition: "all 0.2s ease", cursor: "pointer",
+      }}
+    >
+      {/* Image */}
+      <div style={{ position: "relative", paddingTop: "100%", overflow: "hidden", background: C.bgSoft }}>
+        <img src={product.img} alt={product.name} style={{
+          position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+          objectFit: "cover", transition: "transform 0.35s ease",
+          transform: hov ? "scale(1.05)" : "scale(1)",
+        }}/>
+        {/* Diskon badge */}
+        <div style={{
+          position: "absolute", top: 6, left: 6,
+          background: C.accent, color: "#fff",
+          fontFamily: C.sans, fontSize: 9, fontWeight: 700,
+          padding: "2px 6px", borderRadius: 3,
+        }}>-{disc({price: displayPrice, orig: displayOrig})}%</div>
+        {product.badge && (
+          <div style={{
+            position: "absolute", top: 6, right: 6,
+            background: "#fff", color: C.accent, border: `1px solid ${C.accent}`,
+            fontFamily: C.sans, fontSize: 8, fontWeight: 600,
+            padding: "1px 5px", borderRadius: 3, letterSpacing: 0.3,
+          }}>{product.badge}</div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: "8px 8px 10px" }}>
+        <div style={{ fontFamily: C.sans, fontSize: 9, fontWeight: 600, color: br?.color, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>
+          {br?.name}
+        </div>
+        <div style={{
+          fontFamily: C.sans, fontSize: 11, fontWeight: 500, color: C.text,
+          marginBottom: 5, lineHeight: 1.3,
+          display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+          minHeight: 28,
+        }}>{product.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4 }}>
+          <span style={{ fontFamily: C.sans, fontSize: 13, fontWeight: 700, color: C.accent }}>{rp(displayPrice)}</span>
+          <span style={{ fontFamily: C.sans, fontSize: 10, color: C.mutedL, textDecoration: "line-through" }}>{rp(displayOrig)}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <span style={{ color: "#F5A623", fontSize: 10 }}>★</span>
+          <span style={{ fontFamily: C.sans, fontSize: 10, color: C.muted }}>{product.rating}</span>
+          <span style={{ fontFamily: C.sans, fontSize: 9, color: C.mutedL }}>· {product.sold.toLocaleString("id-ID")}</span>
+        </div>
+        {/* Add to bag button */}
+        <button onClick={(e) => { e.stopPropagation(); onAddCart(product); }} style={{
+          width: "100%", marginTop: 7, padding: "6px 0",
+          background: hov ? C.accent : C.accentL, color: hov ? "#fff" : C.accent,
+          fontFamily: C.sans, fontSize: 10, fontWeight: 600,
+          border: `1px solid ${C.accent}`, borderRadius: 6, cursor: "pointer",
+          transition: "all 0.15s",
+        }}>+ Keranjang</button>
+      </div>
+    </div>
+  );
 }
 
-function applyStyleToGenerate() {
-  // Simpan wizard style ke settings untuk dipakai saat full generate
-  settings.testWizardStyle = { ...wizardStyle };
-  localStorage.setItem('cfg_hosela', JSON.stringify(settings));
-  // Navigate ke generate
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');
-  showPage('generate');
-  toast('✅ Gaya foto tersimpan! Siap full generate.', 'success');
+// ── FLASH SALE CARD ───────────────────────────────────────────────────────────
+function FlashSaleCard({ product, onView, onAddCart }) {
+  const soldPct = Math.round((product.soldCount / product.totalStock) * 100);
+  const remaining = product.totalStock - product.soldCount;
+
+  return (
+    <CompactProductCard
+      product={{...product, price: product.flashPrice, orig: product.orig}}
+      onView={onView}
+      onAddCart={onAddCart}
+      flashPrice={product.flashPrice}
+    />
+  );
 }
 
-
-initParticles();
-renderBrands();
-selectedBrand = settings.brands[0]?.id || null;
-renderBrands();
-</script>
-</body>
-</html>
+// ── CART DRAWER ───────────────────────────────────────────────────────────────
+function CartDrawer({ cart, onClose, onRemove, onQty, onCheckout }) {
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  return (
+    <>
+      <div onClick={onClose} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.35)", zIndex:400 }}/>
+      <div style={{
+        position:"fixed", top:0, right:0, bottom:0, width:360, maxWidth:"92vw",
+        background:C.white, borderLeft:`1px solid ${C.border}`,
+        zIndex:401, display:"flex", flexDirection:"column",
+        animation:"drawerIn 0.25s cubic-bezier(.4,0,.2,1)",
+      }}>
+        <style>{`@keyframes drawerIn{from{transform:translateX(100%)}to{transform:translateX(0)}}`}</style>
+        <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ fontFamily:C.serif, fontSize:20, color:C.text }}>Keranjang Saya</div>
+          <div onClick={onClose} style={{ cursor:"pointer", color:C.muted, fontSize:24, lineHeight:1, padding:"0 4px" }}>×</div>
+        </div>
+        <div style={{ flex:1, overflowY:"auto", padding:"16px" }}>
+          {cart.length === 0 ? (
+            <div style={{ textAlign:"center", padding:"60px 20px" }}>
+              <div style={{ fontSize:48, marginBottom:14 }}>🛍️</div>
+              <div style={{ fontFamily:C.sans, fontSize:14, color:C.muted }}>Keranjang masih kosong</div>
+              <div style={{ fontFamily:C.sans, fontSize:12, color:C.mutedL, marginTop:6 }}>Yuk mulai belanja!</div>
+            </div>
+          ) : cart.map(item => (
+            <div key={item.id} style={{
+              display:"flex", gap:12, marginBottom:14,
+              padding:12, background:C.bg, borderRadius:10, border:`1px solid ${C.border}`,
+            }}>
+              <img src={item.img} style={{ width:64, height:64, borderRadius:8, objectFit:"cover", flexShrink:0 }}/>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontFamily:C.sans, fontSize:10, fontWeight:600, color:brandOf(item.brand)?.color, letterSpacing:1, textTransform:"uppercase", marginBottom:2 }}>
+                  {brandOf(item.brand)?.name}
+                </div>
+                <div style={{ fontFamily:C.sans, fontSize:12, fontWeight:500, color:C.text, marginBottom:4, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                  {item.name}
+                </div>
+                <div style={{ fontFamily:C.sans, fontSize:13, fontWeight:700, color:C.accent, marginBottom:8 }}>{rp(item.price)}</div>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  {[-1,1].map(d => (
+                    <button key={d} onClick={() => onQty(item.id, d)} style={{
+                      width:26, height:26, border:`1px solid ${C.border}`, background:C.white,
+                      color:C.text, cursor:"pointer", borderRadius:6, fontSize:15, lineHeight:1,
+                    }}>{d<0?"-":"+"}</button>
+                  ))}
+                  <span style={{ fontFamily:C.sans, fontSize:13, color:C.text, minWidth:22, textAlign:"center" }}>{item.qty}</span>
+                  <button onClick={() => onRemove(item.id)} style={{ marginLeft:"auto", background:"none", border:"none", color:C.mutedL, cursor:"pointer", fontSize:11, fontFamily:C.sans }}>Hapus</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {cart.length > 0 && (
+          <div style={{ padding:"16px 20px 24px", borderTop:`1px solid ${C.border}`, background:C.white }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <span style={{ fontFamily:C.sans, fontSize:13, color:C.muted }}>Subtotal ({cart.reduce((s,i)=>s+i.qty,0)} item)</span>
+              <span style={{ fontFamily:C.sans, fontSize:16, fontWeight:700, color:C.text }}>{rp(total)}</span>
+            </div>
+            {total >= 150000 && <div style={{ fontFamily:C.sans, fontSize:11, color:C.green, marginBottom:14 }}>🎉 Gratis
