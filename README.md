@@ -1,1 +1,0 @@
-# hosela-image-studio
